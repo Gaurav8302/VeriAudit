@@ -180,7 +180,6 @@ export function ProductLanding() {
       <main id="top">
         <section className="site-hero" aria-labelledby="hero-title">
           <div className="site-hero-copy">
-            <BrandMark variant="hero" />
             <p className="site-kicker">Trust every audit.</p>
             <h1 id="hero-title" className="site-display">
               AI-powered audits with an execution trail you can verify.
