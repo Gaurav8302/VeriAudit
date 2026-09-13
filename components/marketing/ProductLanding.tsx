@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { FAQS } from "./copy";
-import { PRODUCT_SHORTCUT } from "./product-shortcut";
 import "./marketing.css";
 
 const NAV = [
@@ -153,11 +152,6 @@ export function ProductLanding() {
             <Link href="/demo" className="site-cta">
               Start the Demo
             </Link>
-            {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-            <Link href={PRODUCT_SHORTCUT.href} className="site-text">
-              {PRODUCT_SHORTCUT.label}
-              <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
-            </Link>
             <button
               type="button"
               className="site-menu"
@@ -178,11 +172,6 @@ export function ProductLanding() {
             ))}
             <Link href="/demo" className="site-cta" onClick={() => setMenuOpen(false)}>
               Start the Demo
-            </Link>
-            {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-            <Link href={PRODUCT_SHORTCUT.href} className="site-text" onClick={() => setMenuOpen(false)}>
-              {PRODUCT_SHORTCUT.label}
-              <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
             </Link>
           </nav>
         )}
@@ -208,11 +197,6 @@ export function ProductLanding() {
             <div className="site-actions">
               <Link href="/demo" className="site-cta site-cta-lg">
                 Start the Demo
-              </Link>
-              {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-              <Link href={PRODUCT_SHORTCUT.href} className="site-text">
-                {PRODUCT_SHORTCUT.label}
-                <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
               </Link>
               <a href="#how" className="site-text">
                 Explore how it works
@@ -423,8 +407,8 @@ export function ProductLanding() {
                 <li>CooL sealing for real, non-sample work</li>
               </ul>
               <p>
-                The intended path is demo first, then the workspace. You can
-                also open the product directly. Either way, this is an early
+                The intended path is the interactive demo. This preview
+                describes the workspace being built around it. It is an early
                 build — not a finished enterprise suite.
               </p>
             </div>
@@ -434,20 +418,15 @@ export function ProductLanding() {
         <section className="site-band">
           <div className="site-wrap site-close">
             <p className="site-kicker">Use the product</p>
-            <h2 className="site-h2">You&apos;ve seen the story. Now explore the product we&apos;re building.</h2>
+            <h2 className="site-h2">You&apos;ve seen the story. The next step is the demo.</h2>
             <p className="site-intro">
               The intended path is the interactive demo. That is the narrative.
-              Explore the Product opens the work-in-progress workspace directly,
-              so you can inspect the application without repeating the walkthrough.
+              The workspace remains a work-in-progress preview, not a public
+              entry point from this page.
             </p>
             <div className="site-actions">
               <Link href="/demo" className="site-cta site-cta-lg">
                 Start the Demo
-              </Link>
-              {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-              <Link href={PRODUCT_SHORTCUT.href} className="site-text">
-                {PRODUCT_SHORTCUT.label}
-                <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
               </Link>
             </div>
           </div>
@@ -478,11 +457,6 @@ export function ProductLanding() {
             <div className="site-actions">
               <Link href="/demo" className="site-cta site-cta-lg">
                 Start the Demo
-              </Link>
-              {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-              <Link href={PRODUCT_SHORTCUT.href} className="site-text">
-                {PRODUCT_SHORTCUT.label}
-                <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
               </Link>
             </div>
           </div>
