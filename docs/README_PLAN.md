@@ -184,7 +184,7 @@ question:
 | Deterministic generated history | the same demo result every run; no LLM decides the hero audit |
 | Keyword index, not semantic search | the demo query must work every time; reliability over sophistication |
 | 9 CooL-backed events, not all 55 activities | 30 KB and 17 ms per receipt; evidence where it earns its cost |
-| Hand-laid-out trail, no graph library | the trail is a known 8-node causal spine |
+| Hand-laid-out trail, no graph library | the trail is a known 9-node causal spine |
 | `software.digest` always set explicitly | omitting it produces a receipt that fails verification (SDK behaviour, documented in `docs/COOL_SDK_AUDIT.md` §7.1) |
 
 ## 13. Limitations

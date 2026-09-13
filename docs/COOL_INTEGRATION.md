@@ -3,10 +3,11 @@
 How VeriAudit uses CooL. Every API here is `CONFIRMED` in `COOL_SDK_AUDIT.md` —
 read that first for the evidence.
 
-> **Status: IMPLEMENTED as of Milestone 1.** §§4–6 were written as
-> specifications and are now code. Where the implementation diverged from the
-> spec, this document reflects the code and says why. The integration is proved
-> end to end, locally and on Vercel — see `DEPLOYMENT.md` §11.
+> **Status: IMPLEMENTED as of Milestone 1, wired to the audit engine in
+> Milestone 2.** §§4–6 were written as specifications and are now code. Where
+> the implementation diverged from the spec, this document reflects the code and
+> says why. The integration is proved end to end, locally and on Vercel — see
+> `DEPLOYMENT.md` §11.
 
 ### As-built module map
 
@@ -23,6 +24,30 @@ read that first for the evidence.
 | `lib/cool/index.ts` | the barrel, carrying `import "server-only"` |
 | `scripts/cool-identity.ts` | regenerates the pin |
 | `lib/proof/*`, `scripts/proof-http.ts` | proof harness; not product code |
+| `lib/audit/run.ts` | `[M2]` audit → events → `recordEvents` → receipts |
+| `lib/audit/review.ts` | `[M2]` a live human decision → `recordEvent` |
+| `lib/audit/integrity.ts` | `[M3]` bind receipts to tree leaves + rehydrate the root |
+
+**How the audit engine reaches CooL.** The scenarios, the engine, the event
+manager, the query helpers, the append-only trail, and the id minting never
+import `lib/cool/` at all — only `run.ts`, `review.ts`, and `integrity.ts` do.
+So `cool-nwc` calls are not scattered through scenario code (guideline Rule 3,
+one level up), and sections A–D of the Milestone 2 test suite run in ~370 ms
+without standing up an evidence plane.
+
+**Trail integrity, as of Milestone 3.** `verifyTrail` does three things, in
+order, and all three must hold for `status: "verified"`:
+
+1. each sealed receipt still satisfies the Milestone 1 production policy
+2. each receipt is bound to the event it claims — `binding_hash` equals
+   `logState[leafIndex]`, and the receipt's `type` / `execution_id` match
+3. `fingerprintLogState(logState)` rebuilds the RFC 6962 tree from the public
+   hashes alone and the root equals the captured tree head
+
+A genuine receipt sitting on the wrong event fails (2) while still passing
+(1). That is deliberate: CooL attests authenticity, the tree attests position.
+`TODO` (P1): `POST /api/cool/consistency` as a dedicated route. The proof
+itself is already callable via `proveTrailContinues`.
 
 Two deviations from the spec, both deliberate:
 
@@ -100,6 +125,23 @@ tamper-evident?**
 Not recorded, on purpose: UI navigation, search queries, page views, hover
 states, and the 50+ simulated activities. Sending every UI event to CooL would
 be noise, and the source of truth explicitly warns against it.
+
+`CONFIRMED` in Milestone 2 — and for **all four scenarios**, not just the hero.
+Every scenario seals exactly nine events, because the selection is one
+representative per stage rather than a fraction of the total. Legal (22 events),
+cyber (25), and procurement (23) each seal nine; the hero's 30 also seal nine.
+Verified by test D5 and by `scripts/proof-audits.ts`.
+
+The nine are chosen so they form an **unbroken parent chain** from
+`audit.started` to `conclusion.created` — see `EVENT_MODEL.md` §3. That property
+is what this selection strategy is actually buying: reconstructing "why did this
+conclusion happen?" walks a path on which every step is sealed.
+
+One addition beyond the plan: a **live human review** (`POST
+/api/audits/:id/reviews`) is sealed on its own, appended to the same tree as
+leaf 9. A reviewer acting now is exactly the kind of act that has to be
+tamper-evident, and it is the one thing in the product that is genuinely not
+reproducible. `CONFIRMED` verifying, test E9.
 
 ### P1
 

@@ -1,7 +1,16 @@
 # VeriAudit documentation
 
 Discovery and specification set, written before implementation per
-`VeriAudit_CURSOR_BUILD_GUIDELINE.md` §0.
+`VeriAudit_CURSOR_BUILD_GUIDELINE.md` §0, and kept current as each milestone
+lands.
+
+**Built so far:** Milestone 1 — the CooL adapter, proved on Vercel.
+Milestone 2 — the reusable audit engine, four scenarios, the event manager, and
+the audit API. Milestone 3 — the append-only execution trail, rehydration, and
+historical tamper detection. Milestone 4 — the deterministic three-month
+simulation that buries the hero audit. Milestone 5 — inverted-index search and
+recorded-execution reconstruction. Milestone 6A — frontend contract and demo
+state machine. 135 tests passing. No visual frontend has started.
 
 ## Reading order
 
@@ -16,6 +25,9 @@ Discovery and specification set, written before implementation per
 | 7 | [DEMO_FLOW.md](DEMO_FLOW.md) | the 12-stage judge-facing path, stage by stage |
 | 8 | [SIMULATION_SPEC.md](SIMULATION_SPEC.md) | how three months of history are generated, deterministically |
 | 9 | [SEARCH_SPEC.md](SEARCH_SPEC.md) | the index, the filters, the guaranteed demo queries |
+| 9a | [FRONTEND_CONTRACT.md](FRONTEND_CONTRACT.md) | **backend ↔ frontend API and claim contract** |
+| 9b | [DEMO_STATE_MACHINE.md](DEMO_STATE_MACHINE.md) | explicit demo states and legal transitions |
+| 9c | [FABLE5_HANDOFF.md](FABLE5_HANDOFF.md) | what Fable 5 may design, and what it must not change |
 | 10 | [VERIFICATION_SPEC.md](VERIFICATION_SPEC.md) | what is verified, and the claim boundaries |
 | 11 | [SECURITY_AND_CLAIMS.md](SECURITY_AND_CLAIMS.md) | what we claim, what we refuse to claim, the threat model |
 | 12 | [DEPLOYMENT.md](DEPLOYMENT.md) | Vercel architecture, runtime, env vars, checklist |
@@ -120,6 +132,11 @@ CooL integration, which is explicitly scored, at a fraction of the cost of three
 scenarios. Reordered, and the deviation is flagged in the implementation plan
 rather than made silently.
 
+**Superseded in Milestone 2.** The trade-off turned out to be false. Because the
+engine is reusable, the three additional scenarios cost only their data and
+rules — no new architecture, no new event model, no new API. All four are built
+and the tamper demo is still intact. The ordering question no longer arises.
+
 ### 6. Guideline's doc list vs. the fuller set requested
 
 *Guideline §2 lists 7 documents; the discovery brief lists 15.*
@@ -138,7 +155,13 @@ required content; `COOL_SDK_AUDIT.md`, `EVENT_MODEL.md`, `SIMULATION_SPEC.md`,
 | Hardware attestation, witnesses, anchoring | `UNKNOWN`, P2 | out of scope; never claimed |
 | `npx cool-nwc verify` on a downloaded receipt | `UNKNOWN`, P1 | Milestone 9 stretch |
 | Upstream report of the `software.digest` bug | `TODO` | after the build |
-| Behaviour under concurrent requests on Vercel | `UNKNOWN` | Milestone 8; the Milestone 1 proof is single-request |
+| Behaviour under concurrent requests on Vercel | `UNKNOWN` | Milestone 8; the Milestone 1 and 2 proofs are single-request |
+| ~~Whether one engine can serve four audit domains~~ | **`CONFIRMED`** | **Resolved in Milestone 2**: four scenarios, one `runAudit`, ~370 ms for the whole pure suite |
+| Whether a live reviewer's sequence number can be server-derived | `TODO`, M4 | currently caller-supplied, like `logState`; revisit with the IndexedDB session store |
+| ~~Whether the RFC 6962 tree rehydrates after the process dies~~ | **`CONFIRMED`** | **Resolved in Milestone 3**: test K1, matching root, continued append |
+| ~~Whether historical mutation/deletion/reorder are detected~~ | **`CONFIRMED`** | **Resolved in Milestone 3**: tests L1–L5, real CooL mechanisms |
+| ~~Whether a seeded 91-day corpus can bury the hero without a database~~ | **`CONFIRMED`** | **Resolved in Milestone 4**: 55 activities, 14 audits, two runs deeply equal |
+| ~~Whether the eight demo queries retrieve the buried hero~~ | **`CONFIRMED`** | **Resolved in Milestone 5**: tests S1–S3, U1 |
 
 No contradiction remains unresolved.
 
@@ -159,3 +182,36 @@ in place rather than quietly dropped:
    should not: pinning merges the real key back over the substituted one, so a
    genuine receipt still verifies. `COOL_SDK_AUDIT.md` §7.6 now sets out all
    three key-substitution cases and which defence covers each.
+
+---
+
+## Milestone 2 corrections
+
+Three places where the built implementation differs from what these documents
+originally specified. All corrected in place, none dropped:
+
+1. **The causal spine is nine nodes, not eight.** `ARCHITECTURE.md`,
+   `DEMO_FLOW.md`, `SEARCH_SPEC.md`, `README_PLAN.md`, and
+   `IMPLEMENTATION_PLAN.md` all said "8-node". Counting
+   `audit.started → … → conclusion.created` gives nine, and
+   `EVENT_MODEL.md` §3's own diagram always showed nine. The stray "8" traced
+   back to a discovery harness (`proof.mjs`) that recorded eight events. Fixed
+   everywhere; `COOL_SDK_AUDIT.md` §4's "8-event chain" is left alone because it
+   is an accurate record of that harness.
+2. **`Finding.eventId` and `HumanReview.eventId` are gone.** The reference runs
+   event → finding, not both ways; two mutable pointers that must agree is a bug
+   waiting to happen. The API joins them back on read, so no consumer loses
+   anything. `DATA_MODEL.md` §2 explains it, along with the four fields that
+   were *added* (`description`, `recommendedAction`, `observed`,
+   `reviewRequired`, `originalSeverity`) and why each was needed.
+3. **`lib/audit/`, `lib/events/`, and `lib/scenarios/` collapsed into one
+   directory.** The event manager only ever consumes an `AuditResult` and the
+   scenarios only ever feed the engine — three directories with one dependency
+   arrow between them was structure without separation. `ARCHITECTURE.md` §6
+   records the change.
+
+The status-vocabulary difference is **not** a correction, but is worth stating:
+the Milestone 2 brief names review states PENDING / APPROVED / MODIFIED /
+REJECTED. The code uses `open` / `accepted` / `modified` / `rejected` — the same
+four states under the names `DATA_MODEL.md` already used, so the documented
+schema and the code do not diverge.

@@ -75,7 +75,7 @@ first, before any UI existed.
 [x] app/api/cool/record/route.ts     runtime = "nodejs"
 [x] app/api/cool/verify/route.ts     runtime = "nodejs"
 [x] app/api/cool/selftest/route.ts   13-case tamper matrix, server-side
-[x] tests C0–C5, C10 (esp. C4 software.digest) — 27 tests, all passing
+[x] tests C0–C5, C10 (esp. C4 software.digest) — 28 tests, all passing
 [x] local production build + next start, 29/29 HTTP checks
 [x] DEPLOY TO VERCEL and hit the routes in production — 29/29, fingerprint identical
 ```
@@ -89,43 +89,80 @@ the only entry point with a `log` seam), canonicalisation is its own module, and
 `verifyReceipt` accepts an optional `TrustPolicy` so tests can isolate each
 trust check.
 
-### Hour 0:45–1:45 — Milestone 2: Financial audit
+### Hour 0:45–1:45 — Milestone 2: Reusable audit engine + four scenarios
 
 ```text
-[ ] lib/scenarios/financial.ts   4 synthetic artifacts, 12 controls, authored copy
-[ ] lib/audit/controls.ts        control definitions + rules
-[ ] lib/audit/engine.ts          deterministic testing -> 12/9/3 + 3 findings + 3 reviews
-[ ] tests A1–A5
-[ ] app/page.tsx                 onboarding, 4 scenario cards (3 marked extended)
-[ ] app/audit/[auditId]/page.tsx engagement brief + Run audit
+[x] lib/audit/types.ts           one vocabulary: Scenario · Control · Finding · Review
+[x] lib/audit/engine.ts          THE ONE ENGINE — pure, deterministic, throws on drift
+[x] lib/audit/reasoner.ts        the AI seam; deterministic implementation ships
+[x] lib/audit/events.ts          result -> 30-event chain + the canonical 9
+[x] lib/audit/ids.ts             deterministic ids + scenario collision guard
+[x] lib/audit/scenarios/financial.ts  4 artifacts, 12 controls -> 12/9/3, 3 findings, 3 reviews
+[x] lib/audit/scenarios/legal.ts        8 controls -> 8/6/2
+[x] lib/audit/scenarios/cyber.ts       10 controls -> 10/7/3, one review left PENDING
+[x] lib/audit/scenarios/procurement.ts  9 controls -> 9/7/2, one review REJECTED
+[x] lib/audit/run.ts             engine -> events -> CooL adapter -> receipts
+[x] lib/audit/review.ts          a live human decision, sealed on its own
+[x] lib/audit/views.ts           API shapes; never leaks a 30 KB receipt
+[x] app/api/audits/*             7 routes, all runtime = "nodejs"
+[x] tests A1–A9, B1–B5, C1–C6, D1–D8, E1–E9, F1, G1–G4 — 42 tests, all passing
+[x] Milestone 1 regression — 28 tests, still passing
+[x] local production build + next start, 45/45 HTTP checks (scripts/proof-audits.ts)
 ```
 
-**Exit gate:** the audit returns exactly 12 tested / 9 passed / 3 exceptions, ten
-runs in a row. Per guideline Rule 4, no LLM anywhere near this result.
+**Exit gate: PASSED.** The hero returns exactly 12 tested / 9 passed /
+3 exceptions on every run, and the engine throws if it ever stops doing so
+(each scenario declares its own `expected` and is recomputed against it). No LLM
+anywhere near the result — guarded by test G2.
 
-Commit: `feat: financial audit workflow`.
+The plan said "financial audit" and scoped the other three to P1. All four are
+built, because the trade-off turned out to be false: once the engine is
+reusable, an extra scenario costs only its data and rules. No new architecture,
+no new event model, no new API.
 
-### Hour 1:45–2:45 — Milestone 3: Execution events + real sealing
+Two further deviations, both documented: the planned `lib/scenarios/`,
+`lib/audit/`, and `lib/events/` are one directory (`ARCHITECTURE.md` §6), and
+`lib/audit/controls.ts` does not exist — each control's rule lives with the
+evidence it reads, in its scenario file, because a rule separated from its data
+is a rule nobody can check.
+
+UI work (`app/page.tsx`, `app/audit/[auditId]/page.tsx`) deliberately **not**
+started; the Milestone 2 brief scopes it out.
+
+Commit: `feat: reusable audit engine + four scenarios`.
+
+### Hour 1:45–2:45 — Milestone 3: Shared event system + append-only trail
+
+The event model, the 30-event chain, and the nine-receipt sealing already
+landed in Milestone 2. This hour is the trail those events live under.
 
 ```text
-[ ] lib/events/model.ts          VeriAuditEvent + types + relationships
-[ ] lib/events/builder.ts        30-event causal chain from an audit result
-[ ] lib/cool/log-state.ts        MemoryLog(logId, logKey) rehydrated from binding hashes
-[ ] app/api/audit/run/route.ts   engine -> events -> seal 9 -> return receipts + logState
-[ ] lib/store/session.ts         IndexedDB receipts + logState
-[ ] tests E1–E8
+[x] lib/audit/events.ts          already built in M2 — shared model, 30-event chain
+[x] lib/audit/query.ts           by id · by type · sequence · occurredAt
+[x] lib/audit/trail.ts           append-only ExecutionTrail; whyConclusion; snapshot
+[x] lib/audit/integrity.ts       bind receipts to leaves; fingerprintLogState; proveTrailContinues
+[x] lib/cool/log-state.ts        already built in M1 — rehydrate + proveAppendOnly
+[x] GET /api/audits/:id/execution
+[x] GET /api/audits/:id/events/:eventId
+[x] GET|POST /api/audits/:id/integrity
+[x] tests H1–H2, I1–I2, J1–J2, K1, L1–L5, M1–M3 — 15 tests, all passing
+[x] Milestone 1 + 2 regression — 70 tests, still passing
 ```
 
-**Exit gate:** one `POST /api/audit/run` returns 9 verifying receipts sharing one
-`executionId`, with `inclusion: pass` and increasing `leaf_index` — proving the
-shared tree works, not nine trees of size one.
+**Exit gate: PASSED.** The hero seals 9 receipts into one tree; the tree
+rehydrates from public hashes with a matching root; a later append proves
+append-only consistency; mutation / deletion / reorder / receipt-swap /
+conclusion-tamper are all detected using real CooL behaviour.
 
-Commit: `feat: execution event system`.
+`lib/store/session.ts` (IndexedDB) remains `TODO` for Milestone 4 — the trail
+is session-held via `logState` in the API response, same as M1/M2.
+
+Commit: `feat: append-only execution trail`.
 
 ### Hour 2:45–3:45 — Milestone 4: Execution trail
 
 ```text
-[ ] components/trail/            8-node causal spine, fixed layout, no graph library
+[ ] components/trail/            9-node causal spine, fixed layout, no graph library
 [ ] node detail panels           evidence / retrieval / model / control / finding / review / conclusion
 [ ] artifact viewer              plaintext + commitment + Recompute commitment
 [ ] app/trail/[executionId]/page.tsx
@@ -137,36 +174,73 @@ explain why the finding happened. This is the hero UI (guideline Rule 6).
 
 Commit: `feat: execution trail`.
 
-### Hour 3:45–4:30 — Milestone 5: Search
+### Hour 3:45–4:30 — Milestone 5: Search + reconstruction (backend)
+
+The original plan included the search UI in this hour. The build brief makes
+this milestone **backend-only**. The index, the eight asserted queries, the
+filters, and reconstruction are built. The box, chips, and history page remain
+`TODO`.
 
 ```text
-[ ] lib/search/index.ts          inverted index, weights, synonyms, phrase + tag bonuses
-[ ] authored searchTags on the hero audit
-[ ] components/search/           box, suggestion chips, results, filters
-[ ] app/history/page.tsx         feed + search + filters
-[ ] tests S1–S7
+[x] lib/search/tokenize.ts       normalise · tokenise · synonym expand
+[x] lib/search/score.ts          documented weights, phrase + tag bonuses
+[x] lib/search/retrieve.ts       inverted index, deterministic rank
+[x] lib/search/corpus.ts         audits + activities + findings + events
+[x] lib/search/reconstruct.ts    recorded execution; POST receipts to verify
+[x] GET /api/search
+[x] GET|POST /api/audits/:id/reconstruction
+[x] tests S1–S9, T1–T3, U1–U2 — 22 tests, all passing
+[x] Milestone 1–4 regression — 102 tests, still passing
+[ ] components/search/           TODO, later milestone
+[ ] app/history/page.tsx         TODO, later milestone
 ```
 
-**Exit gate:** all 8 guaranteed queries rank the hero audit first, including the
-boss's exact sentence. Release blocker.
+**Exit gate: PASSED** for the backend. All 8 guaranteed queries rank
+`AUD-FIN-2026-09` first, including the boss's sentence. Near-misses do not
+outrank the hero. Search → reconstruct → verify holds.
 
-Commit: `feat: search and filters`.
+Commit: `feat: search and reconstruction`.
 
-### Hour 4:30–5:15 — Milestone 6: Three-month simulation
+### Hour 4:30–5:15 — Milestone 4 (as built): Three-month simulation
+
+The original plan numbered this Milestone 6 and included the history UI.
+The build brief makes the **corpus** Milestone 4 and leaves the feed UI for
+later. The generator, the 14-audit catalog, and the API are built. Month
+grouping, sticky headers, and the boss-question interstitial are still `TODO`.
 
 ```text
-[ ] lib/simulation/rng.ts        mulberry32, SEED, DEMO_TODAY
-[ ] lib/simulation/generate.ts   14 audits, 55 activities, 9 types, weighted dates
-[ ] authored title pools + 4 deliberate near-miss audits
-[ ] history feed: month grouping, sticky headers, evidence chips
-[ ] "Three months later…" interstitial + boss question
-[ ] tests M1–M8
+[x] lib/simulation/rng.ts        mulberry32, SEED=20260915, DEMO_TODAY
+[x] lib/simulation/calendar.ts   weekday windows as offsets from DEMO_TODAY
+[x] lib/simulation/catalog.ts    14 audits, 55 authored drafts, 9 types
+[x] lib/simulation/generate.ts   weighted dates, no engine, no CooL
+[x] GET  /api/simulation
+[x] POST /api/simulation/start   idempotent
+[x] POST /api/simulation/reset   re-generates the same corpus
+[x] tests N1–N3, O1–O3, P1–P4, Q1–Q4, R1–R3 — 17 tests, all passing
+[x] Milestone 1–3 regression — 85 tests, still passing
+[ ] history feed UI              TODO, later milestone
+[ ] "Three months later…" copy   TODO, later milestone
 ```
 
-**Exit gate:** 50+ activities, the hero buried behind 40+ newer rows, scrolling
-to September genuinely feels like three months of work.
+**Exit gate: PASSED** for the backend corpus. 55 activities, 91-day span, hero
+dated 2026-09-15, ≥40 newer rows, two runs with SEED deeply equal.
 
 Commit: `feat: historical simulation`.
+
+### Hour 5:15–5:30 — Milestone 6A: Frontend contract + demo state machine
+
+```text
+[x] docs/FRONTEND_CONTRACT.md    endpoints, loading/error, claim language
+[x] docs/DEMO_STATE_MACHINE.md   12 states, legal transitions, golden path
+[x] docs/FABLE5_HANDOFF.md       designer brief; locked semantics
+[x] lib/demo/state-machine.ts    transition() · IllegalTransitionError
+[x] lib/demo/copy.ts             approved / forbidden claims
+[x] tests/demo-state.test.ts     11 tests
+```
+
+**Exit gate: PASSED.** No visual UI. Backend APIs unchanged.
+
+Commit: `docs: frontend contract and demo state machine`.
 
 ### Hour 5:15–6:00 — Milestone 7: Verification UI
 
@@ -267,7 +341,7 @@ No secrets committed. `.env.example` present. `cool-sdk/` git-ignored.
 | `cool-nwc` misbehaves on Vercel's Node runtime | low | **fatal** | resolved in Milestone 1, hour 1, before any UI |
 | `software.digest` omitted somewhere → silent verification failure | **medium** | high | set in one place in the adapter; test C4 |
 | Displaying VERIFIED when verification did not fully pass | medium | high — dishonest | tests V4 and V8; the `IntegrityState` mapper is the only path to a verified badge |
-| The trail UI eats the schedule | **medium** | high | fixed 8-node layout, no graph library, hard 1-hour box |
+| The trail UI eats the schedule | **medium** | high | fixed 9-node layout, no graph library, hard 1-hour box |
 | Search misses the hero audit under a rephrased query | low | high | authored tags + 8 asserted queries + visible suggestion chips |
 | Receipt size degrades the UI | low | medium | compact references in lists; receipts fetched on demand |
 | `COOL_IMAGE_DIGEST` drift breaks all verification | low | high | startup assertion + test C12 |

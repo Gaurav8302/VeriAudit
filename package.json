@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "cool:identity": "tsx scripts/cool-identity.ts",
     "cool:proof": "node cool-proof/proof.mjs && node cool-proof/proof2.mjs && node cool-proof/proof3.mjs && node cool-proof/proof4.mjs",
-    "proof:http": "tsx scripts/proof-http.ts"
+    "proof:http": "tsx scripts/proof-http.ts",
+    "proof:audits": "tsx scripts/proof-audits.ts"
   },
   "dependencies": {
     "cool-nwc": "3.0.0",

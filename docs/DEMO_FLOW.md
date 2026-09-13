@@ -12,6 +12,10 @@ AI performs audit → three months pass → history becomes crowded
 
 Target run time: **4–5 minutes**.
 
+> **Milestone 6A status.** Backend stages and the demo state machine are
+> built (`lib/demo`). Screen states map 1:1 to `DEMO_STATE_MACHINE.md`.
+> Visual UI is still `TODO`.
+
 ---
 
 ## Stage 1 — Welcome
@@ -27,8 +31,12 @@ Target run time: **4–5 minutes**.
 | **Determinism** | fully static |
 | **Failure handling** | no network dependency, so nothing to fail |
 
-In P0 the three non-financial cards are visibly labelled *"available in the
-extended build"* rather than being dead links. Honest and cheap.
+`CONFIRMED` in Milestone 2: all four scenarios run on the same engine and are
+live behind `GET /api/audits`, so the three non-financial cards no longer need to
+be labelled *"available in the extended build"*. They produce real audits with
+real findings and real receipts — 8/6/2 for legal, 10/7/3 for cyber, 9/7/2 for
+procurement. The financial card stays marked **hero / recommended** because it is
+the deepest and the one the rest of the demo follows.
 
 ---
 
@@ -55,7 +63,7 @@ Customer Contract C-1002, Revenue Recognition Policy REV-POL-3.
 |---|---|
 | **User action** | clicks **Run audit** |
 | **UI state** | staged progress, each line resolving as its events are sealed — **not** a fake spinner |
-| **Backend** | `POST /api/audit/run` (Node runtime): engine tests 12 controls → event manager builds 30 events → CooL adapter seals the 9 canonical ones against the rehydrated log |
+| **Backend** | `POST /api/audits/run` (Node runtime): engine tests 12 controls → event manager builds 30 events → CooL adapter seals the 9 canonical ones against the rehydrated log. `CONFIRMED` working |
 | **Data** | 4 artifacts → 12 control results → 3 findings → 3 reviews → 1 conclusion |
 | **CooL** | 9 × `cool.record(...)`, ~150 ms total (`CONFIRMED` ~17 ms/record). Returns receipts + updated `logState` |
 | **Expected result** | the six stages complete, each showing the count of CooL receipts sealed |
@@ -99,9 +107,9 @@ problem must be felt before reconstruction means anything.
 |---|---|
 | **User action** | clicks **Simulate the next 3 months** |
 | **UI state** | a short animated counter as the feed fills, then the history view with **50+** activities newest-first, spanning ~92 days. The hero audit is far down the list, requiring real scrolling |
-| **Backend** | none — the generator runs client-side from the seed |
-| **Data** | 13 additional audits, ~55 activities across 9 activity types (`SIMULATION_SPEC.md`) |
-| **CooL** | **none.** Simulated activities are labelled *"no cryptographic evidence"* |
+| **Backend** | `POST /api/simulation/start` — `generateHistory(SEED)`, idempotent. `GET /api/simulation` returns the same corpus. `CONFIRMED` |
+| **Data** | 14 audits (hero + 3 real scenarios + 10 catalog), 55 activities across 9 types (`SIMULATION_SPEC.md`) |
+| **CooL** | **none for simulated rows.** Only the hero's own activities carry `coolBacked: true`. The rest are labelled *"no cryptographic evidence"* |
 | **Expected result** | the judge sees the original audit get buried. This is the whole point of the stage |
 | **Determinism** | seeded PRNG, no `Math.random`, no LLM. Identical every run |
 | **Failure handling** | pure computation, nothing to fail |
@@ -134,8 +142,8 @@ before any cryptography is shown.
 |---|---|
 | **User action** | types `revenue recognition exception` (suggested chips offer this and `approval missing`, `September revenue audit`) |
 | **UI state** | ranked results. Top hit: **September Revenue Recognition Audit — AUD-FIN-2026-09**, dated ~3 months ago, with `F-FIN-001` and matched terms highlighted. Filters for date, audit, event type, status |
-| **Backend** | none — in-memory index, client-side |
-| **Data** | the inverted index over titles, summaries, and tags |
+| **Backend** | `GET /api/search?q=revenue+recognition+exception` — inverted index, grouped by audit. `CONFIRMED` hero ranks first |
+| **Data** | the inverted index over audits, findings, activities, and events |
 | **CooL** | none |
 | **Expected result** | the hero audit is the **top** result, every time |
 | **Determinism** | deterministic scoring over a deterministic corpus; asserted by a test |
@@ -152,8 +160,8 @@ every time.
 |---|---|
 | **User action** | clicks the top result |
 | **UI state** | the audit as it stood three months ago: the brief, the artifacts, the result (12/9/3), the 3 findings, and the human review outcome |
-| **Backend** | none |
-| **Data** | `Audit` + `Execution` + `Finding` + `HumanReview` |
+| **Backend** | `GET /api/audits/AUD-FIN-2026-09` — **regenerated deterministically**, no database. `CONFIRMED` byte-identical to what the run returned |
+| **Data** | `Audit` + `Execution` + `Finding` + `HumanReview` + the four artifacts' plaintext |
 | **CooL** | a summary badge: *9 sealed events · tree size N* |
 | **Expected result** | the judge has arrived at the exact decision the boss asked about |
 
@@ -164,12 +172,12 @@ every time.
 | | |
 |---|---|
 | **User action** | clicks **Execution trail** |
-| **UI state** | the eight-node causal spine, left to right / top to bottom, with counts collapsed onto stage nodes. Each node shows type, actor (AI / human / system), logical time, and its integrity chip |
-| **Backend** | none for structure |
+| **UI state** | the nine-node causal spine, left to right / top to bottom, with counts collapsed onto stage nodes. Each node shows type, actor (AI / human / system), logical time, and its integrity chip |
+| **Backend** | `GET /api/audits/:id/events` returns nodes, 29 parent edges, and `spineEventIds` — the layout does not have to be derived in the UI |
 | **Data** | 30 events linked by `parentEventId`, collapsed for display (`EVENT_MODEL.md` §3) |
 | **CooL** | 9 nodes show *sealed*; collapsed stage nodes show how many of their events are backed |
 | **Expected result** | the judge can read *why* the finding happened by following the chain |
-| **Determinism** | fixed layout, fixed node set |
+| **Determinism** | fixed layout, fixed node set. `CONFIRMED` — same 30 event ids every run |
 
 ```text
 Source Evidence → Retrieval → Model Execution → Control Test
@@ -177,6 +185,12 @@ Source Evidence → Retrieval → Model Execution → Control Test
 ```
 
 This is the hero UI. It must be legible without explanation.
+
+`CONFIRMED`: `spineEventIds` is computed by walking `parentEventId` from
+`conclusion.created` to the root, and it returns exactly the nine sealed events
+in exactly the order above. The trail the judge reads and the trail that is
+cryptographically backed are the same trail — there is no unsealed step in the
+middle of the reconstruction.
 
 ---
 
@@ -195,10 +209,20 @@ This is the hero UI. It must be legible without explanation.
 | `artifact.ingested` | the synthetic artifact content, its commitment, and a **Recompute commitment** button — `CONFIRMED` that `saltedCommit(salt, plaintext)` reproduces it and an altered plaintext does not |
 | `retrieval.executed` | the 7 retrieved passages and which artifacts they came from |
 | `model.executed` | model name and version, the input/output commitments, the `software` block as it appears in cleartext in the receipt |
-| `control.tested` | control `REV-REC-01`, the rule applied, the figures, pass/exception |
-| `finding.created` | `F-FIN-001`, severity, rationale, $1.42 M, cited artifacts |
-| `human.review.completed` | J. Okafor, role, decision **accepted**, note, timestamp |
+| `control.tested` | control `REV-REC-01`, the rule applied, the figures (`detail.observed`), pass/exception |
+| `finding.created` | `F-FIN-001`, severity, rationale, recommended action, $1.42 M, cited artifacts |
+| `human.review.completed` | J. Okafor, Senior Manager Assurance, decision **accepted**, note, timestamp |
 | `conclusion.created` | 12 / 9 / 3 |
+
+`CONFIRMED` — the data behind every row exists. `GET /api/audits/:id/events?eventId=…`
+returns one event with its committed payloads, its ancestors, and its children;
+`GET /api/audits/:id/findings` returns each finding already joined to its control
+and its resolved evidence titles, so the panel needs one request, not four.
+
+The hero finding's `detail.observed` is what makes the panel convincing rather
+than assertive: `milestone: "M2"`, `milestone_due_on: "2026-11-15"`,
+`milestone_delivered_on: null`, `posted_on: "2026-09-28"`, `amount_usd: 1420000`.
+A judge can read the contradiction directly off the evidence.
 
 ---
 
@@ -208,7 +232,7 @@ This is the hero UI. It must be legible without explanation.
 |---|---|
 | **User action** | clicks **Verify** on `finding.created` |
 | **UI state** | compact panel first, technical detail on expand |
-| **Backend** | `POST /api/cool/verify` (Node runtime) → `withTrustedKeys` → `verifyEvidence` with `expectedMeasurement` → `key_id` allow-list → `inclusion === "pass"` |
+| **Backend** | `POST /api/audits/:id/verification` with the caller's receipts (or `POST /api/cool/verify` for one) → `withTrustedKeys` → `verifyEvidence` with `expectedMeasurement` → `key_id` allow-list → `inclusion === "pass"`. `CONFIRMED` 9/9 verified |
 | **Data** | the ~30 KB receipt from IndexedDB |
 | **CooL** | the real verification. Measured ~1 ms server-side |
 | **Expected result** | **VERIFIED**, with `simulated` shown honestly for the two hardware domains |

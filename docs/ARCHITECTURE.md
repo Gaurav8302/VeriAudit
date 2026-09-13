@@ -3,10 +3,12 @@
 Derived from the repository inspection and from the SDK findings in
 `COOL_SDK_AUDIT.md`. Tags: `CONFIRMED` / `INFERRED` / `TODO` / `UNKNOWN`.
 
-> **Milestone 1 status.** The stack (§3), the no-database decision (§4), and the
-> CooL layer of the module map (§6) are built and proved on Vercel. The product
-> layers — audit engine, events, simulation, search, UI — are still planned.
-> `[M1]` in §6 marks what exists.
+> **Milestone 6A status.** The stack (§3), the no-database decision (§4), the
+> CooL layer, the audit engine, the four scenarios, the event manager, the
+> append-only execution trail, the three-month simulation corpus, and
+> deterministic search + reconstruction, and the **demo contract / state
+> machine** are built. Product UI is still planned. `[M1]`–`[M6A]` in §6
+> mark what exists.
 
 ---
 
@@ -98,7 +100,7 @@ recoverable from it. VeriAudit keeps its own records and references receipts.
 | Framework | Next.js 15, App Router, TypeScript, React 19 | one deployable unit gives both the UI and the Node-runtime functions CooL needs; Vercel's first-class target |
 | Styling | Tailwind CSS v4 | zero-config in Next 15; no component-library setup cost |
 | Components | hand-written | build-guideline Rule 5: don't overbuild |
-| Graph UI | hand-laid-out SVG/CSS, fixed causal spine | the trail is a known 8-node chain, not an arbitrary graph. A graph library is cost with no benefit (guideline §13: "do not make a random node graph") |
+| Graph UI | hand-laid-out SVG/CSS, fixed causal spine | the trail is a known 9-node chain, not an arbitrary graph. A graph library is cost with no benefit (guideline §13: "do not make a random node graph") |
 | Server runtime | **Vercel Node.js functions** (`export const runtime = "nodejs"`) | vendor declines to support Edge; ML-DSA is CPU-bound. See `COOL_SDK_AUDIT.md` §9 |
 | Database | **none** | see §4 |
 | Search | in-process deterministic inverted index | reliability over sophistication (guideline §12) |
@@ -154,10 +156,27 @@ malformed input loudly rather than defaulting to an empty tree. Silently
 starting over would convert a tampered history into a fresh, perfectly valid
 one — the failure mode the log exists to prevent.
 
+**CONFIRMED in Milestone 2: half (a) works for the whole audit domain, not just
+the simulation.** The audit engine is pure — no clock reads, no randomness, no
+I/O — so an audit is *retrieved by re-running it*. `GET /api/audits/:auditId`
+regenerates the audit, its 12 control results, its 3 findings, its reviews, and
+all 30 events, byte-identically, with no storage of any kind. The determinism is
+guarded two ways: each scenario declares its own `expected` result and the engine
+throws on drift, and a test compares `JSON.stringify` across runs.
+
+The sharp edge this exposes: **receipts are the one thing that cannot be
+regenerated.** `randomSalt()` draws fresh bytes per record, so re-sealing the
+same event yields a different `record_id` and `binding_hash` (`CONFIRMED`,
+`COOL_SDK_AUDIT.md` §7.2). So `POST /api/audits/run` is the only route that
+returns receipts, every `GET` route returns `cool: null` and says so in the
+response, and `GET .../verification` reports `status: "unavailable"` rather than
+inventing a verdict it cannot compute. The caller re-attaches receipts from its
+own store.
+
 `TODO` (P1, only if the session model proves fragile in the Milestone 8 Vercel
 test): add Upstash Redis behind the same adapter interface. Deliberately deferred
 — it adds a provisioning step and env vars for a demo that does not need them.
-Nothing found in Milestone 1 argues for it.
+Nothing found in Milestone 1 or 2 argues for it.
 
 ---
 
@@ -175,17 +194,19 @@ flowchart TB
   end
 
   subgraph vercel["Vercel Node.js Route Handlers"]
-    RUN["POST /api/audit/run"]
-    VER["POST /api/cool/verify"]
+    RUN["POST /api/audits/run"]
+    AUD["GET /api/audits/:id<br/>· /events · /findings"]
+    REV["POST /api/audits/:id/reviews"]
+    VER["POST /api/audits/:id/verification<br/>POST /api/cool/verify"]
     CON["POST /api/cool/consistency"]
     ID["GET /api/cool/identity"]
   end
 
-  subgraph product["Product layer"]
-    ENG["Audit engine<br/>deterministic control tests"]
-    EVT["Event manager<br/>builds the causal chain"]
+  subgraph product["Product layer — lib/audit/"]
+    ENG["Audit engine<br/>one engine, deterministic"]
+    EVT["Event manager<br/>30 events, 9 canonical"]
     SIM["Simulation engine<br/>3 months, 50+ activities"]
-    SCEN["Scenario data<br/>synthetic artifacts"]
+    SCEN["Scenarios × 4<br/>evidence · controls · policy"]
   end
 
   subgraph adapter["CooL adapter — lib/cool/*"]
@@ -199,11 +220,16 @@ flowchart TB
   SDK["cool-nwc@3.0.0<br/>CooL · verifyEvidence · MemoryLog<br/>RFC 6962 · ML-DSA-65 + Ed25519"]
 
   UI -->|"fetch"| RUN
+  UI --> AUD
+  UI --> REV
   UI -->|"receipt"| VER
   UI --> CON
   UI --> ID
+  SCEN --> ENG
   RUN --> ENG --> EVT
-  GEN --> SIM --> SCEN
+  AUD --> ENG
+  REV --> EVT
+  GEN --> SIM
   EVT --> REC --> CL --> SDK
   LOG --> CL
   VER --> VFY --> SDK
@@ -233,7 +259,7 @@ Event manager
 
 ## 6. Module map
 
-`[M1]` exists as of Milestone 1; everything else is planned.
+`[M1]`–`[M6A]` exist; product UI is still planned.
 
 ```text
 veriaudit/
@@ -244,7 +270,21 @@ veriaudit/
 │   ├── history/page.tsx               3-month activity feed + search + filters
 │   ├── trail/[executionId]/page.tsx   execution graph + evidence + verification
 │   └── api/
-│       ├── audit/run/route.ts         run audit, seal its events   (nodejs)
+│       ├── audits/route.ts               [M2] scenario catalogue          (nodejs)
+│       ├── audits/run/route.ts           [M2] run + seal; RETURNS receipts (nodejs)
+│       ├── audits/[auditId]/route.ts     [M2] audit + evidence + trail    (nodejs)
+│       ├── audits/[auditId]/execution/   [M3] compact snapshot + why-conclusion
+│       ├── audits/[auditId]/events/…     [M2] trail; ?type= ?order=          (M3)
+│       ├── audits/[auditId]/events/:id   [M3] one event + ancestors + children
+│       ├── audits/[auditId]/integrity    [M3] GET snapshot · POST receipts+tree
+│       ├── audits/[auditId]/reconstruction [M5] why + trail + optional verify
+│       ├── audits/[auditId]/findings/…   [M2] findings + control + evidence + review
+│       ├── audits/[auditId]/reviews/…    [M2] GET state · POST a decision (sealed)
+│       ├── audits/[auditId]/verification [M2] GET policy · POST receipts to verify
+│       ├── search/route.ts               [M5] GET q= + filters
+│       ├── simulation/route.ts           [M4] GET the 55-row corpus
+│       ├── simulation/start/route.ts     [M4] POST — idempotent load
+│       ├── simulation/reset/route.ts     [M4] POST — same corpus again
 │       ├── cool/record/route.ts  [M1] seal canonical events         (nodejs)
 │       ├── cool/verify/route.ts  [M1] verify a receipt              (nodejs)
 │       ├── cool/identity/route.ts [M1] published key dir + measurement (nodejs)
@@ -262,37 +302,79 @@ veriaudit/
 │   │   ├── log-state.ts          [M1] rehydrate/persist the RFC 6962 tree
 │   │   ├── key-directory.ts      [M1] SDK key-directory type re-exports
 │   │   └── types.ts              [M1] adapter-facing types, SDK-free
+│   ├── audit/                    [M2] the audit domain. CooL-free except run/review/integrity
+│   │   ├── index.ts              [M2] barrel
+│   │   ├── types.ts              [M2] Scenario · Control · Finding · Review · Conclusion
+│   │   ├── engine.ts             [M2] THE ONE ENGINE. pure, deterministic
+│   │   ├── events.ts             [M2] result → 30-event chain + the canonical 9
+│   │   ├── query.ts              [M3] by id · by type · sequence · occurredAt
+│   │   ├── trail.ts              [M3] append-only ExecutionTrail + why + snapshot
+│   │   ├── integrity.ts          [M3] bind receipts to leaves + rehydrate root
+│   │   ├── ids.ts                [M2] deterministic id formats
+│   │   ├── reasoner.ts           [M2] the AI seam; deterministic implementation
+│   │   ├── run.ts                [M2] engine → events → CooL adapter → receipts
+│   │   ├── review.ts             [M2] a live human decision, sealed on its own
+│   │   ├── views.ts              [M2] API response shapes (no receipts)
+│   │   └── scenarios/
+│   │       ├── index.ts          [M2] registry + id-collision guard
+│   │       ├── financial.ts      [M2] HERO — 12 controls, 9 pass, 3 exceptions
+│   │       ├── legal.ts          [M2] 8 controls, 2 exceptions
+│   │       ├── cyber.ts          [M2] 10 controls, 3 exceptions, 1 PENDING review
+│   │       └── procurement.ts    [M2] 9 controls, 2 exceptions, 1 REJECTED review
 │   ├── proof/                    [M1] proof fixtures + tamper matrix; not product code
-│   │   ├── sample-trail.ts       [M1] nine canonical events; replaced by lib/audit
+│   │   ├── sample-trail.ts       [M1] nine canonical events; kept for the M1 tests
 │   │   └── tamper.ts             [M1] the 13-case matrix, shared by tests and selftest
-│   ├── audit/
-│   │   ├── engine.ts                  deterministic control testing
-│   │   └── controls.ts                control definitions
-│   ├── events/
-│   │   ├── model.ts                   event types + relationships
-│   │   └── builder.ts                 causal chain assembly
-│   ├── simulation/
-│   │   ├── generate.ts                3 months, 50+ activities, seeded
-│   │   └── rng.ts                     seeded PRNG (no Math.random)
-│   ├── search/
-│   │   └── index.ts                   inverted index + filters
-│   ├── scenarios/
-│   │   ├── financial.ts               HERO — revenue recognition
-│   │   ├── legal.ts                   P1
-│   │   ├── cyber.ts                   P1
-│   │   └── procurement.ts             P1
+│   ├── simulation/                   [M4] CooL-free, engine-free history
+│   │   ├── index.ts              [M4] barrel
+│   │   ├── rng.ts                [M4] mulberry32, SEED, DEMO_TODAY
+│   │   ├── calendar.ts           [M4] weekday windows from DEMO_TODAY
+│   │   ├── types.ts              [M4] Activity · SimulatedAudit · result
+│   │   ├── catalog.ts            [M4] 14 authored audits, 55 drafts
+│   │   └── generate.ts           [M4] generateHistory(seed) — pure
+│   ├── demo/                         [M6A] session + legal transitions
+│   │   ├── index.ts              [M6A] barrel
+│   │   ├── types.ts              [M6A] DemoState · DemoSession · events
+│   │   ├── state-machine.ts      [M6A] transition() · golden path
+│   │   └── copy.ts               [M6A] approved / forbidden claims
+│   ├── search/                       [M5] inverted index, no embeddings
+│   │   ├── index.ts              [M5] barrel
+│   │   ├── tokenize.ts           [M5] normalise / expand
+│   │   ├── score.ts              [M5] documented weights
+│   │   ├── retrieve.ts           [M5] postings + rank + group
+│   │   ├── corpus.ts             [M5] audits · activities · findings · events
+│   │   ├── reconstruct.ts        [M5] recorded execution; verify on POST
+│   │   └── types.ts              [M5] SearchHit · SearchFilters
 │   └── store/
 │       └── session.ts                 IndexedDB receipts + log state
 ├── components/                        ui primitives + trail nodes + verdict panel
 ├── scripts/
 │   ├── cool-identity.ts          [M1] regenerates the committed pin
-│   └── proof-http.ts             [M1] 29-assertion HTTP proof, any base URL
+│   ├── proof-http.ts             [M1] 29-assertion CooL HTTP proof, any base URL
+│   └── proof-audits.ts           [M2] 45-assertion audit API proof, any base URL
 ├── tests/
-│   └── cool-adapter.test.ts      [M1] 27 tests; see TESTING_PLAN.md
+│   ├── cool-adapter.test.ts      [M1] 28 tests
+│   ├── audit-engine.test.ts      [M2] 42 tests
+│   ├── audit-trail.test.ts       [M3] 15 tests
+│   ├── simulation.test.ts        [M4] 17 tests
+│   ├── search.test.ts            [M5] 22 tests
+│   └── demo-state.test.ts        [M6A] 11 tests; see TESTING_PLAN.md
 ├── docs/                         [M1] this set
 ├── cool-proof/                   [M1] committed SDK proof harnesses + captured output
 └── .env.example                       TODO — nothing requires env yet
 ```
+
+`lib/audit/` mirrors the `lib/cool/` discipline one level up: the engine, the
+scenarios, the event manager, the query helpers, and the append-only trail never
+import `lib/cool/`. Only `run.ts`, `review.ts`, and `integrity.ts` cross that
+line. So the whole audit domain is testable without standing up an evidence
+plane (sections A–D of the M2 suite run in ~370 ms), and a scenario author
+cannot couple audit logic to cryptography.
+
+The earlier plan split this across `lib/audit/`, `lib/events/`, and
+`lib/scenarios/`. Collapsed into one directory because the event manager only
+ever consumes an `AuditResult` and the scenarios only ever feed the engine —
+three directories with one dependency arrow between them was structure without
+separation.
 
 **Rule** — nothing outside `lib/cool/` imports `cool-nwc`. `CONFIRMED` enforced
 by a test that walks every `.ts`/`.tsx` file and fails on a stray import
@@ -307,32 +389,41 @@ client bundle is 104 kB first-load JS, with no post-quantum crypto in it.
 
 ## 7. Request flows
 
-### Running the hero audit
+### Running the hero audit — `CONFIRMED` as built
 
 ```mermaid
 sequenceDiagram
   participant U as Judge
   participant C as Browser
-  participant A as /api/audit/run (Node)
+  participant A as /api/audits/run (Node)
   participant E as Audit engine
+  participant V as Event manager
   participant R as CooL adapter
   participant S as cool-nwc
 
   U->>C: Run financial audit
-  C->>A: POST { scenario, logState[] }
-  A->>E: test 12 controls against synthetic artifacts
-  E-->>A: 9 pass / 3 exceptions (deterministic)
-  A->>R: 9 canonical events, in causal order
+  C->>A: POST { scenario: "financial", logState[] }
+  A->>E: runAudit(financialScenario)
+  E->>E: reason → test 12 controls → 3 findings → 3 reviews → conclude
+  E-->>A: 9 pass / 3 exceptions (deterministic; throws on drift)
+  A->>V: buildEventChain(scenario, result)
+  V-->>A: 30 events, of which 9 canonical
+  A->>R: recordEvents(canonical9, logState)
   R->>S: sealedKeyset + MemoryLog rehydrated from logState
-  loop each event
+  loop each of the 9
     R->>S: cool.record({ type, executionId, metadata, payloads, software })
     S-->>R: receipt (~30 KB)
   end
-  R-->>A: receipts + new logState
-  A-->>C: { audit, events, receipts, logState }
+  R-->>A: receipts + new logState + tree head
+  A-->>C: { audit, trail, sealing, logState, receipts }
   C->>C: persist receipts + logState in IndexedDB
   C-->>U: staged progress, then the result
 ```
+
+Measured locally: 30 events built and 9 sealed in one request, tree size 9.
+If `recordEvents` throws, `runAndSeal` still returns the completed audit with
+`cool: null` on every event and `sealing.error` set — the audit never fails
+because sealing failed.
 
 ### Answering the boss question
 
@@ -345,7 +436,7 @@ sequenceDiagram
   U->>C: search "revenue recognition exception"
   C->>C: in-memory index → the hero audit (deterministic)
   U->>C: open execution trail
-  C->>C: render the 8-node causal chain
+  C->>C: render the 9-node causal chain
   U->>C: verify a node
   C->>V: POST { receipt }
   V->>V: verifyEvidence + key_id allow-list + expectedMeasurement

@@ -10,6 +10,10 @@
  *
  * Exits non-zero on any failure.
  */
+// Makes this file a module. Without it, TypeScript treats both proof scripts as
+// global scripts and their top-level `base` / `json` / `post` collide.
+export {};
+
 const base = (process.argv[2] ?? "http://localhost:3000").replace(/\/$/, "");
 
 const checks: { name: string; ok: boolean; detail: string }[] = [];
