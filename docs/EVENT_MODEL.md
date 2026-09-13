@@ -356,3 +356,9 @@ rehydrates is one sealing's `logState`, held by the session that ran it.
 No failure is invented in application code. The first and fourth cases combine
 a genuine CooL receipt with an application binding check — CooL attests
 authenticity, the tree attests position, and both are required.
+
+### Product traces (`new-product`)
+
+A product trace belongs to one execution. Reopening an audit creates a later
+execution with its own empty trail. It does not append events to the original
+hero chain and does not change existing event IDs.

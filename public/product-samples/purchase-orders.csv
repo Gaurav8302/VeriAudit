@@ -1,0 +1,4 @@
+po_id,vendor,amount_usd,requested_by,approver,status
+PO-8811,Harbor Office Supply,18400,L. Chen,K. Shah,approved
+PO-8812,Northwind Logistics,276000,A. Ruiz,,unapproved
+PO-8813,Cedar Medical,9200,M. Patel,J. Cole,approved

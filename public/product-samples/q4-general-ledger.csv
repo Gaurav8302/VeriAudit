@@ -1,0 +1,6 @@
+entry_id,account,counterparty,amount_usd,period,recognition_date,delivery_status,approver,preparer
+REV-1042,4000 Revenue,Northwind Logistics,1420000,2026-Q4,2026-10-12,not_delivered,A. Ruiz,A. Ruiz
+JE-4402,4000 Revenue,Meridian Health Group,310000,2026-Q4,2026-10-18,partial,J. Cole,M. Patel
+JE-4403,4000 Revenue,Harbor Retail,95000,2026-Q4,2026-10-22,delivered,J. Cole,J. Cole
+JE-4404,4000 Revenue,Northwind Logistics,88000,2026-Q4,2026-10-28,not_delivered,S. Ng,M. Patel
+JE-4410,4000 Revenue,Cedar Medical,42000,2026-Q4,2026-11-03,delivered,S. Ng,M. Patel

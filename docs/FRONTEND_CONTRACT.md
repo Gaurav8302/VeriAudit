@@ -4,8 +4,10 @@ Authoritative contract between the VeriAudit backend and any frontend
 (including Fable 5). Source of truth: the routes that exist today. Tags:
 `CONFIRMED` / `INFERRED` / `TODO` / `UNKNOWN`.
 
-> **Milestone 6A.** No visual UI was built. This document describes what the
-> frontend **may ask** and what it **must not invent**.
+> **Milestone 6A.** This document describes what the frontend **may ask** and
+> what it **must not invent**. The locked demo uses these APIs. The product
+> application at `/product` reads the same catalog and reconstruction data and
+> must not invent verification or AI. See [PRODUCT_APPLICATION.md](PRODUCT_APPLICATION.md).
 
 ---
 
@@ -293,3 +295,34 @@ demos.
 
 No search UI, no visual graph, no IndexedDB helper, no auth, no database,
 no LLM search. `TODO` for a later milestone.
+
+The product application (`/product`) is not a second API. It is a UI over the
+existing catalog, scenarios, and `reconstructAudit` path. Landing and the demo
+final screen both enter that same shell. The landing “Explore product” link
+stays as a development shortcut beside the locked guided demo.
+
+Product routes for the audit lifecycle:
+
+```
+/product/audits/[auditId]
+/product/audits/[auditId]/executions
+/product/audits/[auditId]/executions/[executionId]
+/product/audits/[auditId]/executions/[executionId]/trace
+/product/audits/[auditId]/trace
+```
+
+A trace is scoped to one execution. Reopen does not append events to the
+original reconstruction. The frontend must not invent CooL verification for
+the new execution.
+
+Local create-audit, evidence, finding, and activity records live in the
+product workspace store. They are unsealed. `/product/data` can download
+authored files and a sample JSON dataset that says it is not a sealed export.
+
+`POST /api/product/ai/analyze` returns one normalized reply plus structured
+actions. `POST /api/product/evidence/ingest` fingerprints an upload. Neither
+route exposes API keys. The audit workspace is `/product/audits/[auditId]`.
+Ask VeriAudit remains at `/product/audits/[auditId]/ai`. Executions can be
+closed from the workspace (`IMPLEMENTED`). Reopen creates a later execution
+(`IMPLEMENTED`). New work is labelled unsealed. CooL sealing of that work is
+`TODO`. Persistence of product workspace records is `MOCK` (`localStorage`).

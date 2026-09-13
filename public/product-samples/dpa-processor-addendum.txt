@@ -1,0 +1,13 @@
+Data Processing Addendum (sample)
+
+Section 1 Purpose
+This addendum covers processor obligations for customer personal data.
+
+Section 2 Required approval clause
+Customer policy requires a written prior-approval clause before a processor may engage a sub-processor.
+This addendum describes notification after the fact. It does not contain a written prior-approval clause.
+
+Section 3 Security
+The processor will apply reasonable technical measures. No independent audit right is stated.
+
+This file is sample workspace data. It is not a sealed CooL export.

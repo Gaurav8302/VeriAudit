@@ -80,6 +80,8 @@ export function Verification({
   error,
   onRetry,
   onHome,
+  onRestart,
+  onExplore,
   onTopic,
   onPlace,
 }: {
@@ -89,6 +91,8 @@ export function Verification({
   error: string | null;
   onRetry: () => void;
   onHome: () => void;
+  onRestart?: () => void;
+  onExplore?: () => void;
   onTopic: (topic: ExplainerTopic) => void;
   onPlace: (place: string) => void;
 }) {
@@ -385,19 +389,25 @@ export function Verification({
       <article className="frame">
         <p className="kicker">End of demonstration</p>
         <h1 className="display">The demo is complete.</h1>
-        <p className="lede">You&apos;ve seen the principle.</p>
+        <p className="lede">You&apos;ve seen the VeriAudit idea.</p>
         <p className="lede lede-follow">
-          VeriAudit makes consequential AI work searchable, reconstructable, and
-          cryptographically verifiable.
+          Now explore the product we&apos;re actually building. The demo is the
+          guided experience. The product is the workspace.
         </p>
+        <p className="note">Product preview · Work in progress</p>
         <p className="thesis">
           Rework is allowed.
           <br />
           Rewriting history is detectable.
         </p>
-        <button type="button" className="primary" onClick={onHome}>
-          Return to VeriAudit
-        </button>
+        <div className="home-close-actions">
+          <button type="button" className="primary" onClick={onRestart ?? onHome}>
+            Restart demo
+          </button>
+          <button type="button" className="primary" onClick={onExplore ?? onHome}>
+            Explore the product →
+          </button>
+        </div>
       </article>
     );
   }

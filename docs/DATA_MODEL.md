@@ -151,6 +151,81 @@ the conclusion to the root. Regenerated GETs have `treeHead: null` and
 `POST /api/audits/:id/integrity` with the session's receipts and `logState`
 is what produces `verified`.
 
+### Product execution lineage (`new-product`)
+
+The engine `Execution` above is unchanged. The product workspace adds a thin
+client-side lineage layer in `lib/product/lineage.ts`:
+
+- An **audit** can hold many executions.
+- The hero original (`EXEC-FIN-2026-09-001`) is a frozen catalog record.
+- Reopen appends a new execution that references the previous one.
+- The original events, findings, timestamps, and reconstruction are never
+  rewritten.
+- The new execution has its own empty trace. No fabricated events. No CooL
+  receipts.
+
+This is not a second audit engine and not a second event system.
+
+### Local product workspace (`new-product`, Iteration 5)
+
+`lib/product/localWorkspace.ts` adds client-side mock records:
+
+- `LocalAudit` — `AUD-LOCAL-00N`, status open, no receipts
+- `LocalEvidence` — metadata only, labelled sample evidence
+- `LocalFinding` — unsealed product finding
+- `LocalActivity` — execution-specific, `sealed: false`
+
+These never write into `EXEC-FIN-2026-09-001`.
+
+Iteration 6 adds execution-scoped AI records in the same store:
+
+- `LocalMessage` — conversation, not an audit event
+- `LocalAiAction` — started / completed / failed structured work
+- uploaded evidence may include `fingerprint` and a capped `textExcerpt`
+- AI findings include `originatingActionId` and a pending human review
+
+See [AI_INTEGRATION_PLAN.md](AI_INTEGRATION_PLAN.md) and
+[PRODUCT_WORKSPACE.md](PRODUCT_WORKSPACE.md).
+
+Iteration 7 adds (`IMPLEMENTED` unless noted):
+
+- optional `period` on `LocalAudit`
+- `byteSize` on uploaded evidence
+- `reviewNote` on findings
+- `execution.closed` activity
+- `ProductExecution.status: "closed"` and optional `closedAt`
+  (not part of `HERO_ORIGINAL_SNAPSHOT`)
+- `canonicalEventsFor()` — product event candidates; `sealed` is true only
+  after a server seal bundle exists
+- Persistence of these records remains `MOCK` (`localStorage`)
+- `WorkspaceState.seals` — public CooL receipt bundles keyed by execution id
+  (`IMPLEMENTED`). This is not a database. Serverless invocations do not keep
+  product receipts in process memory.
+
+Iteration 8 adds (`IMPLEMENTED` unless noted):
+
+- `processingStatus` and `chunks[]` on local evidence
+- `chunkIds` on findings and AI actions
+- `grounding`, `confidence`, and `references` on assistant messages
+- Deterministic retrieval in `lib/evidence` — not a vector index
+- XLSX extraction remains `TODO`
+
+See [EVIDENCE_INTELLIGENCE.md](EVIDENCE_INTELLIGENCE.md).
+
+Iteration 9 adds (`IMPLEMENTED` unless noted):
+
+- Canonical product events with evidence fingerprints and output commitments
+- `POST /api/product/executions/seal` and `/verify`
+- Server-side verification (identity, measurement, inclusion, tree)
+- Reopen still creates a new execution; the sealed parent is unchanged
+- Attestation / enclave remain unavailable in simulated mode
+- Durable multi-user receipt storage is `TODO`
+
+See [COOL_PRODUCT_INTEGRATION.md](COOL_PRODUCT_INTEGRATION.md),
+[EXECUTION_SEALING.md](EXECUTION_SEALING.md),
+[VERIFICATION_MODEL.md](VERIFICATION_MODEL.md), and
+[EXECUTION_LINEAGE.md](EXECUTION_LINEAGE.md).
+
 ### Event
 
 Defined in full in `EVENT_MODEL.md` §2. Key fields: `eventId`, `auditId`,

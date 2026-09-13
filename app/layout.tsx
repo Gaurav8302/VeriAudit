@@ -26,7 +26,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "VeriAudit",
   description:
-    "Verify the execution, not just the outcome. Reconstruct what an AI audit did, and check the recorded evidence.",
+    "AI-powered audits with an execution trail you can verify. Evidence, decisions, and execution history stay inspectable.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

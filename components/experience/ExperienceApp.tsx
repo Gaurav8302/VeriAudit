@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getCatalogue,
@@ -22,7 +23,6 @@ import { createSession, transition } from "@/lib/demo/state-machine";
 import type { DemoEvent, DemoSession } from "@/lib/demo/types";
 import { topicFromTrailType, type ExplainerTopic } from "@/lib/demo/explainer";
 import { Explainer } from "./Explainer";
-import { Landing } from "./Landing";
 import { MemoryRail } from "./MemoryRail";
 import { History } from "./screens/History";
 import { Investigation } from "./screens/Investigation";
@@ -37,11 +37,8 @@ import { Trail } from "./screens/Trail";
 import { integrityStatus, Verification } from "./screens/Verification";
 import { Welcome } from "./screens/Welcome";
 
-const HOME_KEY = "veriaudit.home.completed";
-
 export function ExperienceApp() {
-  const [surface, setSurface] = useState<"home" | "demo">("home");
-  const [completed, setCompleted] = useState(false);
+  const router = useRouter();
   const [session, setSession] = useState<DemoSession>(createSession);
   const [opNonce, setOpNonce] = useState(0);
   const sessionRef = useRef(session);
@@ -78,7 +75,6 @@ export function ExperienceApp() {
 
   useEffect(() => {
     setEvidence(loadEvidence());
-    setCompleted(window.sessionStorage.getItem(HOME_KEY) === "1");
   }, []);
 
   useEffect(() => {
@@ -171,18 +167,10 @@ export function ExperienceApp() {
     }
   }, [apply, clearPayloads]);
 
-  const startDemo = useCallback(() => {
-    apply({ type: "reset" });
-    clearPayloads();
-    setSurface("demo");
-  }, [apply, clearPayloads]);
-
   const returnHome = useCallback(() => {
-    setCompleted(true);
-    window.sessionStorage.setItem(HOME_KEY, "1");
-    setSurface("home");
     void resetDemo();
-  }, [resetDemo]);
+    router.push("/");
+  }, [resetDemo, router]);
 
   const onRunRevealed = useCallback(() => {
     const payload = run;
@@ -211,10 +199,6 @@ export function ExperienceApp() {
     if (sessionRef.current.state !== "simulating") return;
     apply({ type: "simulation_succeeded", simulationId: feed.simulationId });
   }, [apply, simulation]);
-
-  if (surface === "home") {
-    return <Landing completed={completed} onStart={startDemo} />;
-  }
 
   const selectedTitle =
     catalogue?.scenarios.find((item) => item.scenarioId === session.selectedScenario)?.title ??
@@ -343,6 +327,8 @@ export function ExperienceApp() {
             error={session.lastError}
             onRetry={() => apply({ type: "retry" })}
             onHome={returnHome}
+            onRestart={() => void resetDemo()}
+            onExplore={() => router.push("/product")}
             onTopic={setExplainerTopic}
             onPlace={setVerifyPlace}
           />

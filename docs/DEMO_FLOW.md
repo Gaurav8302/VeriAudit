@@ -14,7 +14,9 @@ Target run time: **4–5 minutes**.
 
 > **Milestone 6A status.** Backend stages and the demo state machine are
 > built (`lib/demo`). Screen states map 1:1 to `DEMO_STATE_MACHINE.md`.
-> Visual UI is still `TODO`.
+> The visual guided demo lives at `/demo`. The public landing is `/`.
+> After the final demo screen, **Explore the product** enters `/product`.
+> That product workspace is documented in [PRODUCT_APPLICATION.md](PRODUCT_APPLICATION.md).
 
 ---
 
