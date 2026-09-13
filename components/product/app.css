@@ -1066,12 +1066,24 @@
 @media (max-width: 960px) {
   .va {
     grid-template-columns: 1fr;
+    overflow-x: hidden;
   }
 
   .va-side {
     position: static;
     min-height: 0;
     height: auto;
+  }
+
+  .va-main,
+  .va-section,
+  .va-workspace {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .va-table {
+    min-width: 36rem;
   }
 
   .va-grid,
