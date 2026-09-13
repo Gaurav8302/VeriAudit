@@ -121,13 +121,20 @@ export default function ProofPage() {
                   ["trusted signer", output.signerTrusted],
                   ["measurement matches pin", output.measurementMatches],
                   ["inclusion === pass", output.logged],
-                  ["hardware attested", output.hardware],
                 ] as const
               ).map(([name, value]) => (
                 <li key={name}>
                   {value ? "PASS" : "FAIL"} — {name}
                 </li>
               ))}
+              {/* Not a check that can fail: there is no TEE here, so the
+                  attestation and enclave domains read `simulated` by design.
+                  Labelling it FAIL would imply a problem; labelling it PASS
+                  would be a lie. */}
+              <li className="text-neutral-500">
+                {output.hardware ? "PASS" : "n/a"} — hardware root of trust (
+                {output.hardware ? "attested" : "simulated, not claimed"})
+              </li>
             </ul>
           )}
           {Array.isArray(output.failures) && output.failures.length > 0 && (
