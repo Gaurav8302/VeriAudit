@@ -1,0 +1,13 @@
+# The vendored SDK source is reference material, not a build input. `cool-nwc`
+# is installed from the registry.
+cool-sdk/
+
+# Proof harnesses run locally and in CI, never on Vercel.
+cool-proof/
+
+docs/
+VeriAudit_SOURCE_OF_TRUTH.md
+VeriAudit_CURSOR_BUILD_GUIDELINE.md
+
+.next/
+node_modules/

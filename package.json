@@ -1,0 +1,37 @@
+{
+  "name": "veriaudit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI audit workspace with a searchable, verifiable execution trail, backed by CooL cryptographic evidence.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "cool:identity": "tsx scripts/cool-identity.ts",
+    "cool:proof": "node cool-proof/proof.mjs && node cool-proof/proof2.mjs && node cool-proof/proof3.mjs && node cool-proof/proof4.mjs",
+    "proof:http": "tsx scripts/proof-http.ts"
+  },
+  "dependencies": {
+    "cool-nwc": "3.0.0",
+    "next": "^15.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "tailwindcss": "^4.1.13",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

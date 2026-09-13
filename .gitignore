@@ -1,0 +1,29 @@
+# Cloned upstream CooL SDK — a separate repository with its own .git.
+# VeriAudit consumes cool-nwc from npm; this clone is a local read-only reference.
+# See docs/ARCHITECTURE.md §1.
+cool-sdk/
+
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+build/
+
+# env — .env.example IS committed, real env files are not
+.env
+.env*.local
+
+# proof harness artifacts (the .mjs sources and captured .txt output ARE committed)
+cool-proof/node_modules/
+cool-proof/browser/bundle.js
+cool-proof/.playwright-mcp/
+
+# misc
+.DS_Store
+*.pem
+.vercel
+.cool/
+coverage/
+*.tsbuildinfo
