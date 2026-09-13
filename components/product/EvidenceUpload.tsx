@@ -7,9 +7,13 @@ import { useWorkspace } from "./WorkspaceProvider";
 export function EvidenceUpload({
   auditId,
   executionId,
+  compact = false,
+  onDone,
 }: {
   auditId: string;
   executionId: string;
+  compact?: boolean;
+  onDone?: () => void;
 }) {
   const workspace = useWorkspace();
   const evidence = workspace.evidence(auditId, executionId);
@@ -84,6 +88,7 @@ export function EvidenceUpload({
         chunks: payload.chunks,
       });
       setNote(payload.processingStatus === "failed" ? payload.note ?? "Processing failed." : payload.note ?? "Evidence is ready.");
+      onDone?.();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The file could not be attached.");
     } finally {
@@ -121,6 +126,7 @@ export function EvidenceUpload({
       }
       for (const file of payload.files) attach(file);
       setNote(`${payload.files.length} sample files are ready. This is the evidence AI will work against.`);
+      onDone?.();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Sample data could not be attached.");
     } finally {
@@ -129,8 +135,8 @@ export function EvidenceUpload({
   }
 
   return (
-    <div className="va-upload">
-      {evidence.length === 0 ? (
+    <div className={compact ? "va-upload is-compact" : "va-upload"}>
+      {compact ? null : evidence.length === 0 ? (
         <p className="va-empty">No evidence uploaded yet. This is the evidence AI will work against.</p>
       ) : (
         <p className="va-empty">

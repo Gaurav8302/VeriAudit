@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "@/components/brand/BrandMark";
-import { isAuditWorkspace, pageMeta } from "@/lib/product/pageMeta";
+import { isAuditWorkspace, isStudioWorkspace, pageMeta } from "@/lib/product/pageMeta";
 import "./app.css";
 
 const PRIMARY = [
-  { href: "/product", label: "Overview", exact: true },
+  { href: "/product", label: "Home", exact: true },
   { href: "/product/audits", label: "Audits" },
   { href: "/product/audits/new", label: "Create Audit", exact: true },
 ] as const;
@@ -28,9 +28,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const meta = pageMeta(pathname);
   const workspace = isAuditWorkspace(pathname);
+  const studio = isStudioWorkspace(pathname);
 
   return (
-    <div className="va">
+    <div className={studio ? "va is-studio" : "va"}>
       <aside className="va-side" aria-label="Product">
         <BrandMark href="/product" variant="compact" />
         <nav className="va-nav">
@@ -44,29 +45,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {item.label}
             </Link>
           ))}
-          <p className="va-group">Investigation</p>
-          {INVESTIGATION.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={active(pathname, item.href) ? "va-link is-active" : "va-link"}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <p className="va-group">Secondary</p>
-          <Link
-            href="/product/data"
-            className={active(pathname, "/product/data") ? "va-link is-active" : "va-link"}
-          >
-            Sample data
-          </Link>
-          <Link
-            href="/product/settings"
-            className={active(pathname, "/product/settings") ? "va-link is-active" : "va-link"}
-          >
-            Settings
-          </Link>
+          {studio ? null : (
+            <>
+              <p className="va-group">Investigation</p>
+              {INVESTIGATION.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active(pathname, item.href) ? "va-link is-active" : "va-link"}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <p className="va-group">Secondary</p>
+              <Link
+                href="/product/data"
+                className={active(pathname, "/product/data") ? "va-link is-active" : "va-link"}
+              >
+                Sample data
+              </Link>
+              <Link
+                href="/product/settings"
+                className={active(pathname, "/product/settings") ? "va-link is-active" : "va-link"}
+              >
+                Settings
+              </Link>
+            </>
+          )}
         </nav>
         <div className="va-side-foot">
           <Link href="/" className="va-back">
@@ -76,16 +81,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <div className="va-main">
-        <header className="va-chrome">
-          <p className="va-chrome-label">{meta.chrome}</p>
-          <nav className="va-chrome-actions" aria-label="Workspace actions">
-            <Link href="/" className="va-back">
-              ← Back to VeriAudit
-            </Link>
-            <Link href="/#faq">Help</Link>
-            <Link href="/demo">Replay demo</Link>
-          </nav>
-        </header>
+        {studio ? null : (
+          <header className="va-chrome">
+            <p className="va-chrome-label">{meta.chrome}</p>
+            <nav className="va-chrome-actions" aria-label="Workspace actions">
+              <Link href="/" className="va-back">
+                ← Back to VeriAudit
+              </Link>
+              <Link href="/#faq">Help</Link>
+              <Link href="/demo">Replay demo</Link>
+            </nav>
+          </header>
+        )}
         <div className="va-body">
           {!workspace && (
             <header className="va-page">

@@ -16,9 +16,11 @@ function CheckRow({ ok, label }: { ok: boolean; label: string }) {
 export function SealPanel({
   auditId,
   confirmOpen = false,
+  compact = false,
 }: {
   auditId: string;
   confirmOpen?: boolean;
+  compact?: boolean;
 }) {
   const { execution, findings, evidence, activities, actions, hasSeal, readiness } = useAuditPhase(auditId);
   const trust = useExecutionTrust(auditId, execution?.executionId ?? null);
@@ -38,7 +40,7 @@ export function SealPanel({
   const failed = trust.failed;
 
   return (
-    <section className="va-seal">
+    <section className={compact ? "va-seal is-compact" : "va-seal"}>
       <p className="va-kicker">Execution trust</p>
       {verified ? (
         <>

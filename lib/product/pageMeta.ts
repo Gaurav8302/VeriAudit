@@ -56,6 +56,10 @@ export function isAuditWorkspace(pathname: string): boolean {
   return pathname.startsWith("/product/audits/") && pathname !== "/product/audits/new";
 }
 
+export function isStudioWorkspace(pathname: string): boolean {
+  return /^\/product\/audits\/(?!new$)[^/]+(\/ai)?$/.test(pathname);
+}
+
 export function pageMeta(pathname: string): PageMeta {
   if (PAGES[pathname]) return PAGES[pathname];
   if (pathname.includes("/findings/") && pathname !== "/product/findings") {

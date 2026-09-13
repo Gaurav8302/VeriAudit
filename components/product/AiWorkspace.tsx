@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { findingReviewLabel, isWritableExecution } from "@/lib/product/localWorkspace";
 import type { AiChatMessage, ProposedAction } from "@/lib/ai/types";
+import { domainLabel } from "@/lib/product/workspace";
 import { EvidenceUpload } from "./EvidenceUpload";
 import { ProductExplainer } from "./ProductExplainer";
 import { Term } from "./Term";
@@ -39,7 +40,15 @@ function actionKind(type: string): string {
   return type.replace(/_/g, " ");
 }
 
-export function AiWorkspace({ auditId, compact = false }: { auditId: string; compact?: boolean }) {
+export function AiWorkspace({
+  auditId,
+  compact = false,
+  studio = false,
+}: {
+  auditId: string;
+  compact?: boolean;
+  studio?: boolean;
+}) {
   const workspace = useWorkspace();
   const executionId = workspace.selectedId(auditId);
   const execution = workspace.executions(auditId).find((item) => item.executionId === executionId) ?? null;
@@ -53,14 +62,18 @@ export function AiWorkspace({ auditId, compact = false }: { auditId: string; com
         .activities(auditId, executionId)
         .filter((item) => item.type === "evidence.uploaded" || item.type === "evidence.added")
     : [];
-  const auditTitle = workspace.localAudit(auditId)?.title ?? workspace.audits.find((item) => item.auditId === auditId)?.title;
+  const local = workspace.localAudit(auditId);
+  const audit = workspace.audits.find((item) => item.auditId === auditId);
+  const auditTitle = local?.title ?? audit?.title;
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openAction, setOpenAction] = useState<string | null>(null);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const pendingFindings = findings.filter((item) => item.origin === "ai" && item.review === "pending");
   const latestAssistant = [...messages].reverse().find((item) => item.role === "assistant") ?? null;
+  const fill = studio || compact;
 
   async function ask(nextPrompt = prompt) {
     if (!execution || !writable) return;
@@ -144,104 +157,17 @@ export function AiWorkspace({ auditId, compact = false }: { auditId: string; com
     return <p className="va-empty">Create an execution before asking the assistant.</p>;
   }
 
-  return (
+  const conversation = (
     <>
-      {compact && writable ? (
-        <EvidenceUpload auditId={auditId} executionId={execution.executionId} />
-      ) : null}
-      {!compact ? (
-        <>
-          <p className="va-lede">
-            The <Term name="assistant">AI audit assistant</Term> performs assigned
-            work. The live <Term name="trace">trace</Term> is the same execution:{" "}
-            {execution.executionId}.{" "}
-            {writable ? "Actions are recorded and unsealed." : execution.status === "closed" ? "Closed." : "Read-only."}
-          </p>
-          <ProductExplainer
-            title="What is the AI doing?"
-            body="The assistant analyzes the evidence you provide, performs audit tasks, and records the important actions it takes so the work can be reviewed later."
-          />
-          {!writable ? (
-            <p className="va-empty">
-              AI work belongs on an active execution. Closed and sealed records stay
-              unchanged.
-            </p>
-          ) : (
-            <EvidenceUpload auditId={auditId} executionId={execution.executionId} />
-          )}
-        </>
-      ) : null}
-      <div className={compact ? "va-copilot" : "va-ai-grid"}>
-        <section className={compact ? "va-copilot-panel" : "va-section"} id="ai-assistant">
+      {messages.length === 0 ? (
+        <div className="va-assistant-empty">
           <p className="va-kicker">AI audit assistant</p>
           <h2>What should we investigate?</h2>
-          <p className="va-empty">
-            Context: {execution.label}
-            {evidence.length ? ` · ${evidence.length} evidence` : " · no evidence yet"}
-            {findings.length ? ` · ${findings.length} findings` : ""}.
+          <p>
+            {evidence.length === 0
+              ? "Give evidence to the AI auditor, then ask it to begin."
+              : "Ask VeriAudit to review the evidence attached to this execution."}
           </p>
-          {messages.length === 0 ? (
-            <p className="va-empty">
-              {evidence.length === 0
-                ? "Upload evidence or try sample audit data, then assign a task."
-                : "What would you like me to check in the evidence attached to this execution?"}
-            </p>
-          ) : (
-            <ol className="va-chat">
-              {messages.map((item) => {
-                const provider = providerLabel(item.provider);
-                return (
-                  <li key={item.messageId}>
-                    <strong>{item.role === "user" ? "You" : "Assistant"}</strong>
-                    <p>{item.content}</p>
-                    {item.role === "assistant" ? (
-                      <>
-                        <span className="meta">
-                          {item.grounding === "insufficient"
-                            ? "Insufficient evidence"
-                            : item.grounding === "evidence-backed"
-                              ? "Evidence-backed"
-                              : item.mode === "mock"
-                                ? "Mock analysis"
-                                : "AI analysis"}
-                          {provider ? ` · ${provider}` : ""}
-                          {item.model && item.model !== "unknown" && item.provider && item.provider !== "mock"
-                            ? ` · ${item.model}`
-                            : ""}
-                          {" · Recorded to execution · Unsealed"}
-                        </span>
-                        {item.references.length > 0 ? (
-                          <ul className="va-ref-list">
-                            {item.references.map((ref) => (
-                              <li key={`${item.messageId}-${ref.chunkId}`}>
-                                <Link href={`/product/audits/${auditId}/evidence/${ref.evidenceId}#${ref.chunkId}`}>
-                                  {ref.label}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-          {pendingFindings.length > 0 ? (
-            <div className="va-ai-findings">
-              {pendingFindings.map((finding) => (
-                <p key={finding.findingId} className="va-ai-finding">
-                  <strong>Potential exception</strong>
-                  <span>
-                    AI identified {finding.findingId}. {findingReviewLabel(finding.review)} — AI is not the
-                    final authority.
-                  </span>
-                  <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>Review finding</Link>
-                </p>
-              ))}
-            </div>
-          ) : null}
           {writable ? (
             <div className="va-starters">
               {STARTERS.map((item) => (
@@ -259,33 +185,195 @@ export function AiWorkspace({ auditId, compact = false }: { auditId: string; com
                 </button>
               ))}
             </div>
-          ) : null}
-          <div className="va-form">
-            <label>
-              Ask VeriAudit
-              <textarea
-                value={prompt}
-                rows={compact ? 3 : 4}
-                disabled={!writable || busy}
-                onChange={(event) => setPrompt(event.target.value)}
-                placeholder="Ask VeriAudit..."
-              />
-            </label>
-          </div>
-          <div className="va-actions" style={{ padding: "0 1rem 1rem" }}>
-            <button type="button" className="va-btn va-btn-primary" disabled={!writable || busy} onClick={() => void ask()}>
-              {busy ? "AI working" : "Ask AI"}
+          ) : (
+            <p className="va-empty">This execution is closed. New AI work belongs on a later run.</p>
+          )}
+        </div>
+      ) : (
+        <ol className="va-chat">
+          {messages.map((item) => {
+            const provider = providerLabel(item.provider);
+            return (
+              <li key={item.messageId} className={item.role === "user" ? "is-user" : "is-assistant"}>
+                <strong>{item.role === "user" ? "You" : "VeriAudit"}</strong>
+                <p>{item.content}</p>
+                {item.role === "assistant" ? (
+                  <>
+                    <span className="meta">
+                      {item.grounding === "insufficient"
+                        ? "Insufficient evidence"
+                        : item.grounding === "evidence-backed"
+                          ? "Evidence-backed"
+                          : item.mode === "mock"
+                            ? "Mock analysis"
+                            : "AI analysis"}
+                      {provider ? ` · ${provider}` : ""}
+                      {item.model && item.model !== "unknown" && item.provider && item.provider !== "mock"
+                        ? ` · ${item.model}`
+                        : ""}
+                      {" · Recorded to execution · Unsealed"}
+                    </span>
+                    {item.references.length > 0 ? (
+                      <ul className="va-ref-list">
+                        {item.references.map((ref) => (
+                          <li key={`${item.messageId}-${ref.chunkId}`}>
+                            <Link href={`/product/audits/${auditId}/evidence/${ref.evidenceId}#${ref.chunkId}`}>
+                              {ref.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {pendingFindings.length > 0 ? (
+        <div className="va-ai-findings">
+          {pendingFindings.map((finding) => (
+            <div key={finding.findingId} className="va-ai-finding">
+              <strong>Potential exception</strong>
+              <span>
+                {finding.findingId} — {finding.title}. {findingReviewLabel(finding.review)} — AI is not the
+                final authority.
+              </span>
+              <div className="va-actions">
+                <button
+                  type="button"
+                  className="va-btn va-btn-primary"
+                  onClick={() => workspace.reviewFinding(finding.findingId, "accepted")}
+                >
+                  Accept
+                </button>
+                <button type="button" className="va-btn" onClick={() => workspace.reviewFinding(finding.findingId, "rejected")}>
+                  Dismiss
+                </button>
+                <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>Review finding</Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {running ? (
+        <p className="va-ai-progress">
+          <strong>Investigating</strong>
+          <span>→ {running}</span>
+        </p>
+      ) : null}
+      {error ? <p className="va-empty">{error}</p> : null}
+    </>
+  );
+
+  const composer = (
+    <div className="va-composer">
+      {evidenceOpen && writable ? (
+        <EvidenceUpload
+          auditId={auditId}
+          executionId={execution.executionId}
+          compact
+          onDone={() => setEvidenceOpen(false)}
+        />
+      ) : null}
+      {writable && messages.length > 0 ? (
+        <div className="va-starters">
+          {STARTERS.slice(0, 4).map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className="va-chip"
+              disabled={busy}
+              onClick={() => void ask(item.prompt)}
+            >
+              {item.label}
             </button>
-          </div>
-          {error ? <p className="va-empty">{error}</p> : null}
-          {compact && running ? (
-            <p className="va-ai-progress">
-              <strong>Analyzing evidence</strong>
-              <span>→ {running}</span>
+          ))}
+        </div>
+      ) : null}
+      <div className="va-composer-row">
+        <label className="va-composer-field">
+          <span className="va-sr-only">Ask VeriAudit</span>
+          <textarea
+            value={prompt}
+            rows={2}
+            disabled={!writable || busy}
+            onChange={(event) => setPrompt(event.target.value)}
+            placeholder="Ask VeriAudit..."
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void ask();
+              }
+            }}
+          />
+        </label>
+        {writable ? (
+          <button type="button" className="va-btn" onClick={() => setEvidenceOpen((value) => !value)}>
+            {evidenceOpen ? "Close" : "+ Evidence"}
+          </button>
+        ) : null}
+        <button type="button" className="va-btn va-btn-primary" disabled={!writable || busy} onClick={() => void ask()}>
+          {busy ? "AI working" : "Ask AI"}
+        </button>
+      </div>
+    </div>
+  );
+
+  if (studio || fill) {
+    return (
+      <section className="va-assistant" id="ai-assistant">
+        <header className="va-assistant-head">
+          <div>
+            <p className="va-kicker">AI audit assistant</p>
+            <h1>{auditTitle ?? "Audit workspace"}</h1>
+            <p>
+              {audit ? domainLabel(audit.domain) : local ? domainLabel(local.domain) : ""}
+              {execution ? ` · ${execution.label}` : ""}
+              {evidence.length ? ` · ${evidence.length} evidence` : " · no evidence yet"}
             </p>
-          ) : null}
+          </div>
+          <nav className="va-assistant-links" aria-label="Investigate">
+            <Link href={`/product/audits/${auditId}/evidence`}>Evidence</Link>
+            <Link href={`/product/audits/${auditId}/findings`}>Findings</Link>
+            <Link href={`/product/audits/${auditId}/trace`}>Activity</Link>
+          </nav>
+        </header>
+        <div className="va-assistant-thread">{conversation}</div>
+        {composer}
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <p className="va-lede">
+        The <Term name="assistant">AI audit assistant</Term> performs assigned
+        work. The live <Term name="trace">trace</Term> is the same execution:{" "}
+        {execution.executionId}.{" "}
+        {writable ? "Actions are recorded and unsealed." : execution.status === "closed" ? "Closed." : "Read-only."}
+      </p>
+      <ProductExplainer
+        title="What is the AI doing?"
+        body="The assistant analyzes the evidence you provide, performs audit tasks, and records the important actions it takes so the work can be reviewed later."
+      />
+      {!writable ? (
+        <p className="va-empty">
+          AI work belongs on an active execution. Closed and sealed records stay
+          unchanged.
+        </p>
+      ) : (
+        <EvidenceUpload auditId={auditId} executionId={execution.executionId} />
+      )}
+      <div className="va-ai-grid">
+        <section className="va-section" id="ai-assistant">
+          <p className="va-kicker">AI audit assistant</p>
+          <h2>What should we investigate?</h2>
+          {conversation}
+          {composer}
         </section>
-        {compact ? null : <section className="va-section">
+        <section className="va-section">
           <h2>Live execution trace</h2>
           <p className="va-empty">
             {execution.executionId}. What the assistant just did is recorded here.
@@ -295,12 +383,6 @@ export function AiWorkspace({ auditId, compact = false }: { auditId: string; com
                 ? " This execution is closed. New AI work belongs on a later execution."
                 : " These actions are not cryptographically sealed."}
           </p>
-          {running ? (
-            <p className="va-ai-progress">
-              <strong>Analyzing evidence</strong>
-              <span>→ {running}</span>
-            </p>
-          ) : null}
           {latestAssistant?.mode === "live" && latestAssistant.provider && latestAssistant.provider !== "mock" ? (
             <p className="va-empty">
               Request completed
@@ -309,9 +391,6 @@ export function AiWorkspace({ auditId, compact = false }: { auditId: string; com
                 : ""}
               .
             </p>
-          ) : null}
-          {pendingFindings.length > 0 ? (
-            <p className="va-empty">● Awaiting human review</p>
           ) : null}
           {uploads.length === 0 && actions.length === 0 && !running ? (
             <p className="va-empty">
@@ -350,34 +429,12 @@ export function AiWorkspace({ auditId, compact = false }: { auditId: string; com
                       {item.status === "completed" ? " · Recorded to execution" : ""}
                       {" · Unsealed"}
                     </span>
-                    {openAction === item.actionId ? (
-                      <span className="meta">
-                        {item.evidenceIds.length ? (
-                          <>
-                            {item.evidenceIds.map((id, i) => (
-                              <Link key={id} href={`/product/audits/${auditId}/evidence/${id}`} onClick={(event) => event.stopPropagation()}>
-                                {i ? `, ${id}` : id}
-                              </Link>
-                            ))}
-                          </>
-                        ) : null}
-                        {item.findingId ? (
-                          <>
-                            {" · "}
-                            <Link href={`/product/audits/${auditId}/findings/${item.findingId}`} onClick={(event) => event.stopPropagation()}>
-                              Review finding
-                            </Link>
-                          </>
-                        ) : null}
-                        {item.detail ? ` · ${item.detail}` : ""}
-                      </span>
-                    ) : null}
                   </button>
                 </li>
               ))}
             </ol>
           )}
-        </section>}
+        </section>
       </div>
     </>
   );

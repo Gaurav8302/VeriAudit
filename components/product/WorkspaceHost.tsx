@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { asWorkspaceAudit } from "@/lib/product/localWorkspace";
+import { isStudioWorkspace } from "@/lib/product/pageMeta";
 import { domainLabel, type WorkspaceAudit } from "@/lib/product/workspace";
 import { ExecutionSwitcher } from "./ExecutionSwitcher";
+import { LiveExecutionLedger } from "./LiveExecutionLedger";
 import { WorkspaceCommand } from "./WorkspaceCommand";
 import { WorkspaceNav } from "./WorkspaceNav";
 import { WorkspaceStatus } from "./WorkspaceStatus";
@@ -19,6 +22,8 @@ export function WorkspaceHost({
   catalogAudit: WorkspaceAudit | null;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const studio = isStudioWorkspace(pathname);
   const workspace = useWorkspace();
   const { execution } = useAuditPhase(auditId);
   const local = workspace.localAudit(auditId);
@@ -37,10 +42,19 @@ export function WorkspaceHost({
     );
   }
 
+  if (studio) {
+    return (
+      <div className="va-studio">
+        <div className="va-studio-center">{children}</div>
+        <LiveExecutionLedger auditId={audit.auditId} title={audit.title} domain={domainLabel(audit.domain)} />
+      </div>
+    );
+  }
+
   return (
     <div className="va-workspace">
       <p className="va-crumb">
-        <Link href="/product/audits">← Audits</Link>
+        <Link href={`/product/audits/${audit.auditId}`}>← Workspace</Link>
       </p>
       <header className="va-workspace-head">
         <div>

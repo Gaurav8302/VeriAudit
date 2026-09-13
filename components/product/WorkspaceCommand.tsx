@@ -7,7 +7,13 @@ import { ReopenAudit } from "./ReopenAudit";
 import { useAuditPhase } from "./useAuditPhase";
 import { useWorkspace } from "./WorkspaceProvider";
 
-export function WorkspaceCommand({ auditId }: { auditId: string }) {
+export function WorkspaceCommand({
+  auditId,
+  placement = "bar",
+}: {
+  auditId: string;
+  placement?: "bar" | "rail";
+}) {
   const workspace = useWorkspace();
   const { execution, primary, canReopen } = useAuditPhase(auditId);
   const writable = isWritableExecution(execution);
@@ -26,7 +32,7 @@ export function WorkspaceCommand({ auditId }: { auditId: string }) {
   return (
     <div className="va-command">
       <div className="va-actions">
-        {primary === "continue" ? (
+        {primary === "continue" && placement === "bar" ? (
           <a href="#ai-assistant" className="va-btn va-btn-primary">
             Continue audit
           </a>
@@ -52,7 +58,7 @@ export function WorkspaceCommand({ auditId }: { auditId: string }) {
             Close execution
           </button>
         ) : null}
-        {writable ? (
+        {writable && placement === "bar" ? (
           <Link href={`/product/audits/${auditId}/evidence`} className="va-btn">
             Add evidence
           </Link>
