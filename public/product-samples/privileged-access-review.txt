@@ -1,0 +1,16 @@
+Privileged Access Review (sample)
+
+Control AC-2 Account review
+Owner: Security operations
+Evidence: Quarterly review completed for standard users.
+
+Control AC-6 Privileged access
+Owner: Identity team
+Finding: Account svc-backup has domain-admin rights. MFA is missing.
+Evidence of MFA enrolment: none.
+
+Control AC-7 Failed logon lockout
+Owner: Identity team
+Evidence: Lockout policy exported.
+
+This file is sample workspace data. It is not a sealed CooL export.

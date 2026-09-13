@@ -12,6 +12,7 @@ export async function POST(request: Request) {
     prompt?: string;
     prior?: AiChatMessage[];
     evidence?: AiEvidenceContext[];
+    auditTitle?: string;
   } | null;
   const prompt = body?.prompt?.trim();
   const executionId = body?.executionId?.trim();
@@ -30,11 +31,17 @@ export async function POST(request: Request) {
     prompt,
     prior: body?.prior ?? [],
     evidence: body?.evidence ?? [],
+    auditTitle: body?.auditTitle,
+    executionId,
   });
 
   return NextResponse.json({
     reply: result.work.reply,
     actions: result.work.actions,
+    grounding: result.work.grounding ?? null,
+    confidence: result.work.confidence ?? null,
+    evidenceReferences: result.work.evidenceReferences ?? [],
+    suggestedFindings: result.work.suggestedFindings ?? [],
     provider: result.response.provider,
     model: result.response.model,
     requestId: result.response.requestId,

@@ -33,6 +33,9 @@ function asAction(value: unknown): ProposedAction | null {
         ? row.findingSeverity
         : undefined,
     findingDescription: typeof row.findingDescription === "string" ? row.findingDescription : undefined,
+    chunkIds: Array.isArray(row.chunkIds)
+      ? row.chunkIds.filter((id): id is string => typeof id === "string")
+      : [],
   };
 }
 
@@ -44,13 +47,71 @@ export function parseAiWork(raw: string): ParsedAiWork {
       const parsed = JSON.parse(raw.slice(start, end + 1)) as {
         reply?: unknown;
         actions?: unknown;
+        confidence?: unknown;
+        evidenceReferences?: unknown;
+        suggestedFindings?: unknown;
       };
       const reply = typeof parsed.reply === "string" ? parsed.reply.trim() : "";
       const actions = Array.isArray(parsed.actions)
         ? parsed.actions.map(asAction).filter((item): item is ProposedAction => Boolean(item))
         : [];
       if (reply || actions.length) {
-        return { reply: reply || "Analysis recorded.", actions };
+        const confidence =
+          parsed.confidence === "high" ||
+          parsed.confidence === "medium" ||
+          parsed.confidence === "low" ||
+          parsed.confidence === "none"
+            ? parsed.confidence
+            : undefined;
+        const refs = Array.isArray(parsed.evidenceReferences)
+          ? parsed.evidenceReferences.flatMap((item) => {
+              if (!item || typeof item !== "object") return [];
+              const row = item as Record<string, unknown>;
+              if (typeof row.evidenceId !== "string" || typeof row.chunkId !== "string") return [];
+              return [
+                {
+                  evidenceId: row.evidenceId,
+                  chunkId: row.chunkId,
+                  label: typeof row.label === "string" ? row.label : row.chunkId,
+                  excerpt: typeof row.excerpt === "string" ? row.excerpt : "",
+                },
+              ];
+            })
+          : [];
+        const suggested = Array.isArray(parsed.suggestedFindings)
+          ? parsed.suggestedFindings.flatMap((item) => {
+              if (!item || typeof item !== "object") return [];
+              const row = item as Record<string, unknown>;
+              if (typeof row.title !== "string" || typeof row.description !== "string") return [];
+              const severity =
+                row.severity === "low" ||
+                row.severity === "medium" ||
+                row.severity === "high" ||
+                row.severity === "critical"
+                  ? row.severity
+                  : undefined;
+              return [
+                {
+                  title: row.title,
+                  description: row.description,
+                  severity,
+                  evidenceIds: Array.isArray(row.evidenceIds)
+                    ? row.evidenceIds.filter((id): id is string => typeof id === "string")
+                    : [],
+                  chunkIds: Array.isArray(row.chunkIds)
+                    ? row.chunkIds.filter((id): id is string => typeof id === "string")
+                    : [],
+                } satisfies NonNullable<ParsedAiWork["suggestedFindings"]>[number],
+              ];
+            })
+          : [];
+        return {
+          reply: reply || "Analysis recorded.",
+          actions,
+          confidence,
+          evidenceReferences: refs,
+          suggestedFindings: suggested,
+        };
       }
     } catch {
       // fall through to prose

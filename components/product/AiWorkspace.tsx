@@ -8,6 +8,13 @@ import { EvidenceUpload } from "./EvidenceUpload";
 import { Term } from "./Term";
 import { useWorkspace } from "./WorkspaceProvider";
 
+const STARTERS = [
+  { label: "Analyze evidence", prompt: "Analyze the uploaded evidence and summarize what it actually supports." },
+  { label: "Find exceptions", prompt: "Which transactions or records appear to violate the policy?" },
+  { label: "Summarize controls", prompt: "Which controls are present and which are missing evidence?" },
+  { label: "Check compliance", prompt: "Check these records against the attached policy or required clauses." },
+] as const;
+
 export function AiWorkspace({ auditId }: { auditId: string }) {
   const workspace = useWorkspace();
   const executionId = workspace.selectedId(auditId);
@@ -21,20 +28,19 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
         .activities(auditId, executionId)
         .filter((item) => item.type === "evidence.uploaded" || item.type === "evidence.added")
     : [];
-  const [prompt, setPrompt] = useState(
-    "Check the revenue transactions against the policy and identify anything that needs human review.",
-  );
+  const auditTitle = workspace.localAudit(auditId)?.title ?? workspace.audits.find((item) => item.auditId === auditId)?.title;
+  const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openAction, setOpenAction] = useState<string | null>(null);
 
-  async function ask() {
+  async function ask(nextPrompt = prompt) {
     if (!execution || !writable) return;
-    const question = prompt.trim();
+    const question = nextPrompt.trim();
     if (!question) return;
     setBusy(true);
-    setRunning("Asking VeriAudit");
+    setRunning("Retrieving evidence");
     setError(null);
     try {
       const prior: AiChatMessage[] = workspace
@@ -46,6 +52,7 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
         body: JSON.stringify({
           auditId,
           executionId: execution.executionId,
+          auditTitle,
           prompt: question,
           prior,
           evidence: evidence.map((item) => ({
@@ -54,7 +61,8 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
             kind: item.kind,
             filename: item.filename,
             extraction: item.extraction,
-            textExcerpt: item.textExcerpt,
+            textExcerpt: item.chunks.length ? null : item.textExcerpt,
+            chunks: item.chunks,
           })),
         }),
       });
@@ -67,6 +75,14 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
         requestId?: string | null;
         status?: "ok" | "unavailable";
         mode?: "live" | "mock";
+        grounding?: "evidence-backed" | "insufficient" | null;
+        confidence?: "high" | "medium" | "low" | "none" | null;
+        evidenceReferences?: {
+          evidenceId: string;
+          chunkId: string;
+          label: string;
+          excerpt: string;
+        }[];
       };
       if (!response.ok) throw new Error(payload.error ?? "AI analysis is temporarily unavailable.");
       workspace.applyAiTurn({
@@ -80,6 +96,9 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
         requestId: payload.requestId ?? null,
         mode: payload.mode ?? "mock",
         status: payload.status ?? "unavailable",
+        grounding: payload.grounding ?? null,
+        confidence: payload.confidence ?? null,
+        references: payload.evidenceReferences ?? [],
       });
       setPrompt("");
     } catch (cause) {
@@ -118,8 +137,9 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
           <h2>Ask VeriAudit</h2>
           {messages.length === 0 ? (
             <p className="va-empty">
-              Ask about the evidence attached to this execution. Chat explains
-              the work. The trace records it.
+              {evidence.length === 0
+                ? "Upload evidence or try sample audit data, then ask a question."
+                : "Ask about the evidence attached to this execution. Chat explains the work. The trace records it."}
             </p>
           ) : (
             <ol className="va-chat">
@@ -128,15 +148,46 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
                   <strong>{item.role === "user" ? "You" : "VeriAudit"}</strong>
                   <p>{item.content}</p>
                   {item.role === "assistant" ? (
-                    <span className="meta">
-                      {item.mode === "mock" ? "Mock analysis" : "AI analysis"}
-                      {" · Unsealed"}
-                    </span>
+                    <>
+                      <span className="meta">
+                        {item.grounding === "insufficient" ? "Insufficient evidence" : item.grounding === "evidence-backed" ? "Evidence-backed" : item.mode === "mock" ? "Mock analysis" : "AI analysis"}
+                        {" · Unsealed"}
+                      </span>
+                      {item.references.length > 0 ? (
+                        <ul className="va-ref-list">
+                          {item.references.map((ref) => (
+                            <li key={`${item.messageId}-${ref.chunkId}`}>
+                              <Link href={`/product/audits/${auditId}/evidence/${ref.evidenceId}#${ref.chunkId}`}>
+                                {ref.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </>
                   ) : null}
                 </li>
               ))}
             </ol>
           )}
+          {writable ? (
+            <div className="va-starters">
+              {STARTERS.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  className="va-chip"
+                  disabled={busy}
+                  onClick={() => {
+                    setPrompt(item.prompt);
+                    void ask(item.prompt);
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <div className="va-form">
             <label>
               Question
@@ -145,6 +196,7 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
                 rows={4}
                 disabled={!writable || busy}
                 onChange={(event) => setPrompt(event.target.value)}
+                placeholder="Check these revenue transactions against the recognition policy."
               />
             </label>
           </div>
@@ -169,7 +221,7 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
           ) : null}
           {uploads.length === 0 && actions.length === 0 && !running ? (
             <p className="va-empty">
-              No structured actions yet. Uploads, reads, analysis, and findings
+              No structured actions yet. Retrieval, reads, analysis, and findings
               for this execution will appear here.
             </p>
           ) : (
@@ -205,7 +257,16 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
                       <span className="meta">
                         {item.type}
                         {item.occurredAt ? ` · ${item.occurredAt.slice(11, 16)}` : ""}
-                        {item.evidenceIds.length ? ` · Evidence ${item.evidenceIds.join(", ")}` : ""}
+                        {item.evidenceIds.length ? (
+                          <>
+                            {" · "}
+                            {item.evidenceIds.map((id, i) => (
+                              <Link key={id} href={`/product/audits/${auditId}/evidence/${id}`} onClick={(event) => event.stopPropagation()}>
+                                {i ? `, ${id}` : id}
+                              </Link>
+                            ))}
+                          </>
+                        ) : null}
                         {item.findingId ? (
                           <>
                             {" · "}

@@ -1,20 +1,33 @@
+import { INSUFFICIENT_EVIDENCE } from "@/lib/evidence";
 import type { AiChatRequest, NormalizedAiResponse } from "../types";
 
 export function mockAnalyze(request: AiChatRequest): NormalizedAiResponse {
-  const last = [...request.messages].reverse().find((item) => item.role === "user")?.content ?? "";
   const evidence = request.evidence;
+  const names = evidence.map((item) => item.filename ?? item.title);
+  const ids = evidence.map((item) => item.evidenceId);
+  const chunks = evidence.flatMap((item) => item.chunks ?? []);
   const reply = JSON.stringify({
     reply:
       evidence.length === 0
-        ? "I need evidence attached to this execution before I can check transactions against a policy."
-        : "I found transactions that need human review against the attached policy. This is mock analysis, not a live provider.",
+        ? INSUFFICIENT_EVIDENCE
+        : `Based on ${names.join(" and ")}, I found items that need human review. This is mock analysis, not a live provider.`,
+    confidence: evidence.length === 0 ? "none" : "medium",
+    evidenceReferences: chunks.slice(0, 3).map((chunk) => {
+      const parent = evidence.find((item) => item.chunks?.some((row) => row.chunkId === chunk.chunkId));
+      return {
+        evidenceId: parent?.evidenceId ?? ids[0],
+        chunkId: chunk.chunkId,
+        label: `${parent?.filename ?? parent?.title ?? "Evidence"} · ${chunk.locator}`,
+        excerpt: chunk.text.slice(0, 160),
+      };
+    }),
     actions:
       evidence.length === 0
         ? [
             {
-              type: "REQUEST_HUMAN_REVIEW",
-              title: "Attach evidence",
-              detail: "Upload or add sample evidence before analysis.",
+              type: "SEARCH_EVIDENCE",
+              title: "Evidence search",
+              detail: "No evidence was attached.",
               evidenceIds: [],
             },
           ]
@@ -22,36 +35,33 @@ export function mockAnalyze(request: AiChatRequest): NormalizedAiResponse {
             ...evidence.map((item) => ({
               type: "READ_EVIDENCE",
               title: `Read ${item.title}`,
-              detail: item.extraction === "text" ? "Used extracted text" : "Used evidence metadata only",
+              detail: item.extraction === "text" ? "Used retrieved text" : "Used evidence metadata only",
               evidenceIds: [item.evidenceId],
+              chunkIds: (item.chunks ?? []).map((chunk) => chunk.chunkId),
             })),
             {
-              type: "COMPARE_EVIDENCE",
-              title: "Compared transactions against policy",
-              detail: last,
-              evidenceIds: evidence.map((item) => item.evidenceId),
-            },
-            {
               type: "ANALYZE_EVIDENCE",
-              title: "revenue-recognition-check",
-              detail: "Looked for recognition timing and approval exceptions.",
-              evidenceIds: evidence.map((item) => item.evidenceId),
+              title: "Analyze attached evidence",
+              detail: "Compared the retrieved sections for exceptions.",
+              evidenceIds: ids,
+              chunkIds: chunks.map((item) => item.chunkId),
             },
             {
               type: "CREATE_FINDING",
               title: "Create finding",
               detail: "Proposed an exception for human review.",
-              evidenceIds: evidence.map((item) => item.evidenceId),
-              findingTitle: "Revenue recognition exception",
+              evidenceIds: ids,
+              chunkIds: chunks.map((item) => item.chunkId),
+              findingTitle: "Exception proposed from retrieved evidence",
               findingSeverity: "high",
               findingDescription:
-                "Transactions appear to need review against the attached revenue policy. A person should accept, modify, or reject this proposal.",
+                "The retrieved evidence supports an exception that a person should accept, modify, or reject.",
             },
             {
               type: "REQUEST_HUMAN_REVIEW",
               title: "Request human review",
               detail: "AI proposals are not approved automatically.",
-              evidenceIds: evidence.map((item) => item.evidenceId),
+              evidenceIds: ids,
             },
           ],
   });

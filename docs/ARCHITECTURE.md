@@ -278,6 +278,11 @@ Closing an execution makes it immutable (`IMPLEMENTED`). Reopening appends a
 child execution (`IMPLEMENTED`). Canonical event mapping exists
 (`IMPLEMENTED`). CooL sealing of new work does not (`TODO`). Workspace
 persistence is `MOCK` (`localStorage`).
+Evidence intelligence lives in `lib/evidence/`: parse, chunk, retrieve.
+The analyze route sends retrieved chunks only. See
+[EVIDENCE_INTELLIGENCE.md](EVIDENCE_INTELLIGENCE.md) and
+[AI_WORKFLOW.md](AI_WORKFLOW.md). This is `IMPLEMENTED`. External RAG
+infrastructure is `TODO` and was not added.
 
 ```text
 veriaudit/

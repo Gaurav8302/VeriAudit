@@ -16,8 +16,9 @@ executions can later be sealed. New product work is **unsealed**.
 | Audit list | IMPLEMENTED — name, domain, status, execution, last activity |
 | Create audit | IMPLEMENTED — name, domain, description, optional period |
 | Audit workspace | IMPLEMENTED — chat, live trace, evidence, findings |
-| Evidence upload | IMPLEMENTED — PDF/CSV/XLSX/TXT; TXT/CSV extracted |
-| Deep PDF/XLSX extraction | TODO |
+| Evidence upload | IMPLEMENTED — PDF/CSV/JSON/XLSX/TXT; chunks stored |
+| Deep PDF/XLSX extraction | TODO — XLSX fingerprinted only; simple PDF text only |
+| Deterministic retrieval | IMPLEMENTED |
 | AI chat + structured actions | IMPLEMENTED — server gateway |
 | Live trace | IMPLEMENTED — unsealed action history |
 | Findings + human review | IMPLEMENTED — Accept / Modify / Reject, modify note |

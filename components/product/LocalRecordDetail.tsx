@@ -62,12 +62,16 @@ export function LocalEvidenceDetail({
           <dd>{item.fingerprint ? `${item.fingerprint.slice(0, 16)}…` : "—"}</dd>
         </div>
         <div>
+          <dt>Status</dt>
+          <dd>{item.processingStatus === "failed" ? "Failed" : item.processingStatus === "processing" ? "Processing" : "Ready"}</dd>
+        </div>
+        <div>
           <dt>Extraction</dt>
           <dd>
             {item.extraction === "text"
               ? "Text extracted"
               : item.extraction === "unavailable"
-                ? "Fingerprint only — extraction not implemented"
+                ? "Fingerprint only — text was not extracted"
                 : "Metadata only"}
           </dd>
         </div>
@@ -84,7 +88,20 @@ export function LocalEvidenceDetail({
         <h2>Description</h2>
         <p className="va-empty">{item.description || "No description yet."}</p>
       </section>
-      {item.textExcerpt ? (
+      {item.chunks.length > 0 ? (
+        <section className="va-section">
+          <h2>Addressable chunks</h2>
+          <ul className="va-list">
+            {item.chunks.map((chunk) => (
+              <li key={chunk.chunkId} id={chunk.chunkId}>
+                <strong>{chunk.chunkId}</strong>
+                <span>{chunk.locator}</span>
+                <p className="va-empty">{chunk.text}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : item.textExcerpt ? (
         <section className="va-section">
           <h2>Extracted text</h2>
           <p className="va-empty">{item.textExcerpt}</p>
@@ -187,14 +204,26 @@ export function LocalFindingDetail({
           <p className="va-empty">No related evidence attached.</p>
         ) : (
           <ul className="va-list">
-            {related.map((item) => (
-              <li key={item.artifactId}>
-                <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>
-                  <strong>{item.title}</strong>
-                </Link>
-                <span>{item.artifactId}</span>
-              </li>
-            ))}
+            {related.map((item) => {
+              const chunks = item.chunks.filter((chunk) => finding.chunkIds.includes(chunk.chunkId));
+              return (
+                <li key={item.artifactId}>
+                  <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>
+                    <strong>{item.title}</strong>
+                  </Link>
+                  <span>{item.filename ?? item.artifactId}</span>
+                  {chunks.map((chunk) => (
+                    <p key={chunk.chunkId} className="va-empty">
+                      <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}#${chunk.chunkId}`}>
+                        {chunk.locator}
+                      </Link>
+                      {" — "}
+                      {chunk.text.slice(0, 180)}
+                    </p>
+                  ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

@@ -122,8 +122,7 @@ export function AuditOverview({
           <h2>Evidence on this execution</h2>
           {localEvidence.length === 0 ? (
             <p className="va-empty">
-              This is the evidence AI is working against. Nothing is attached
-              yet.
+              No evidence uploaded yet. This is the evidence AI works against.
             </p>
           ) : (
             <ul className="va-list">

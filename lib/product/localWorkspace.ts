@@ -11,6 +11,7 @@ import {
   type ProductExecution,
 } from "./lineage";
 import type { ActionLife, AiActionType, AiMode, AiProviderName, ProposedAction } from "@/lib/ai/types";
+import { remapChunkIds, type EvidenceChunk, type EvidenceProcessing, type Grounding, type Confidence, type EvidenceReference } from "@/lib/evidence";
 import {
   HERO_AUDIT_ID,
   HERO_EXECUTION_ID,
@@ -66,6 +67,8 @@ export interface LocalEvidence {
   readonly extraction: EvidenceExtraction;
   readonly textExcerpt: string | null;
   readonly byteSize: number | null;
+  readonly processingStatus: EvidenceProcessing;
+  readonly chunks: readonly EvidenceChunk[];
 }
 
 export interface LocalFinding {
@@ -82,6 +85,7 @@ export interface LocalFinding {
   readonly originatingActionId: string | null;
   readonly review: FindingReview;
   readonly reviewNote: string | null;
+  readonly chunkIds: readonly string[];
 }
 
 export interface LocalMessage {
@@ -95,6 +99,9 @@ export interface LocalMessage {
   readonly model: string | null;
   readonly requestId: string | null;
   readonly mode: AiMode | null;
+  readonly grounding: Grounding | null;
+  readonly confidence: Confidence | null;
+  readonly references: readonly EvidenceReference[];
 }
 
 export interface LocalAiAction {
@@ -109,6 +116,7 @@ export interface LocalAiAction {
   readonly findingId: string | null;
   readonly occurredAt: string;
   readonly completedAt: string | null;
+  readonly chunkIds: readonly string[];
 }
 
 export interface LocalActivity {
@@ -184,17 +192,42 @@ export function migrateReopens(reopens: Record<string, ProductExecution[]>): Wor
   };
 }
 
+function asEvidence(item: LocalEvidence): LocalEvidence {
+  return {
+    ...item,
+    processingStatus: item.processingStatus ?? (item.extraction === "text" ? "ready" : "ready"),
+    chunks: item.chunks ?? [],
+  };
+}
+
+function asFinding(item: LocalFinding): LocalFinding {
+  return { ...item, chunkIds: item.chunkIds ?? [] };
+}
+
+function asMessage(item: LocalMessage): LocalMessage {
+  return {
+    ...item,
+    grounding: item.grounding ?? null,
+    confidence: item.confidence ?? null,
+    references: item.references ?? [],
+  };
+}
+
+function asAction(item: LocalAiAction): LocalAiAction {
+  return { ...item, chunkIds: item.chunkIds ?? [] };
+}
+
 export function parseWorkspace(raw: unknown): WorkspaceState {
   if (!raw || typeof raw !== "object") return EMPTY_WORKSPACE;
   const value = raw as Partial<WorkspaceState>;
   return {
     audits: Array.isArray(value.audits) ? value.audits : [],
     extras: value.extras && typeof value.extras === "object" ? value.extras : {},
-    evidence: Array.isArray(value.evidence) ? value.evidence : [],
-    findings: Array.isArray(value.findings) ? value.findings : [],
+    evidence: Array.isArray(value.evidence) ? value.evidence.map(asEvidence) : [],
+    findings: Array.isArray(value.findings) ? value.findings.map(asFinding) : [],
     activities: Array.isArray(value.activities) ? value.activities : [],
-    messages: Array.isArray(value.messages) ? value.messages : [],
-    actions: Array.isArray(value.actions) ? value.actions : [],
+    messages: Array.isArray(value.messages) ? value.messages.map(asMessage) : [],
+    actions: Array.isArray(value.actions) ? value.actions.map(asAction) : [],
     selected: value.selected && typeof value.selected === "object" ? value.selected : {},
   };
 }
@@ -452,6 +485,8 @@ export function addEvidence(
     extraction?: EvidenceExtraction;
     textExcerpt?: string | null;
     byteSize?: number | null;
+    processingStatus?: EvidenceProcessing;
+    chunks?: readonly EvidenceChunk[];
   },
 ): { state: WorkspaceState; evidence: LocalEvidence } {
   const execution = assertWritable(state, input.auditId, input.executionId);
@@ -459,8 +494,9 @@ export function addEvidence(
   if (!title) throw new Error("Give the evidence a name.");
   const createdAt = input.createdAt ?? new Date().toISOString();
   const uploaded = Boolean(input.fingerprint);
+  const artifactId = `ART-LOCAL-${pad(nextCount(state.evidence.map((item) => item.artifactId), "ART-LOCAL-"))}`;
   const evidence: LocalEvidence = {
-    artifactId: `ART-LOCAL-${pad(nextCount(state.evidence.map((item) => item.artifactId), "ART-LOCAL-"))}`,
+    artifactId,
     auditId: input.auditId,
     executionId: execution.executionId,
     title,
@@ -475,6 +511,8 @@ export function addEvidence(
     extraction: input.extraction ?? "none",
     textExcerpt: input.textExcerpt ?? null,
     byteSize: input.byteSize ?? null,
+    processingStatus: input.processingStatus ?? (input.extraction === "text" ? "ready" : "ready"),
+    chunks: remapChunkIds(artifactId, input.chunks ?? []),
   };
   return {
     state: withActivity(
@@ -506,6 +544,7 @@ export function addFinding(
     origin?: FindingOrigin;
     originatingActionId?: string | null;
     review?: FindingReview;
+    chunkIds?: readonly string[];
   },
 ): { state: WorkspaceState; finding: LocalFinding } {
   const execution = assertWritable(state, input.auditId, input.executionId);
@@ -527,6 +566,7 @@ export function addFinding(
     originatingActionId: input.originatingActionId ?? null,
     review: input.review ?? "pending",
     reviewNote: null,
+    chunkIds: input.chunkIds ?? [],
   };
   const extras = (state.extras[input.auditId] ?? []).map((item) =>
     item.executionId === execution.executionId
@@ -675,6 +715,9 @@ export function applyAiTurn(
     mode: AiMode;
     status: "ok" | "unavailable";
     occurredAt?: string;
+    grounding?: Grounding | null;
+    confidence?: Confidence | null;
+    references?: readonly EvidenceReference[];
   },
 ): { state: WorkspaceState; findingIds: readonly string[] } {
   const execution = assertWritable(state, input.auditId, input.executionId);
@@ -693,6 +736,9 @@ export function applyAiTurn(
       model: null,
       requestId: null,
       mode: null,
+      grounding: null,
+      confidence: null,
+      references: [],
     },
   ];
   const assistantId = `MSG-LOCAL-${pad(nextCount(messages.map((item) => item.messageId), "MSG-LOCAL-"))}`;
@@ -709,6 +755,9 @@ export function applyAiTurn(
       model: input.model,
       requestId: input.requestId,
       mode: input.mode,
+      grounding: input.grounding ?? null,
+      confidence: input.confidence ?? null,
+      references: input.references ?? [],
     },
   ];
 
@@ -728,6 +777,7 @@ export function applyAiTurn(
       findingId: null,
       occurredAt: at,
       completedAt: at,
+      chunkIds: [],
     };
     next = withActivity(
       { ...next, actions: [...next.actions, failed] },
@@ -749,6 +799,12 @@ export function applyAiTurn(
     const scopedEvidence = proposed.evidenceIds.filter((id) =>
       next.evidence.some((item) => item.artifactId === id && item.executionId === execution.executionId),
     );
+    const knownChunks = new Set(
+      next.evidence
+        .filter((item) => item.executionId === execution.executionId)
+        .flatMap((item) => item.chunks.map((chunk) => chunk.chunkId)),
+    );
+    const scopedChunks = (proposed.chunkIds ?? []).filter((id) => knownChunks.has(id));
     let findingId: string | null = null;
     let working = withActivity(
       {
@@ -767,6 +823,7 @@ export function applyAiTurn(
             findingId: null,
             occurredAt: at,
             completedAt: null,
+            chunkIds: scopedChunks,
           },
         ],
       },
@@ -793,6 +850,7 @@ export function applyAiTurn(
         origin: "ai",
         originatingActionId: actionId,
         review: "pending",
+        chunkIds: scopedChunks,
       });
       working = created.state;
       findingId = created.finding.findingId;

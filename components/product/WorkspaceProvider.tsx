@@ -163,6 +163,14 @@ interface WorkspaceApi {
     requestId: string | null;
     mode: AiMode;
     status: "ok" | "unavailable";
+    grounding?: "evidence-backed" | "insufficient" | null;
+    confidence?: "high" | "medium" | "low" | "none" | null;
+    references?: readonly {
+      evidenceId: string;
+      chunkId: string;
+      label: string;
+      excerpt: string;
+    }[];
   }) => { findingIds: readonly string[] };
   exportSample: () => ReturnType<typeof buildSampleExport>;
   clearLocal: () => void;

@@ -199,6 +199,16 @@ Iteration 7 adds (`IMPLEMENTED` unless noted):
 - Persistence of these records remains `MOCK` (`localStorage`)
 - Sealing those candidates with CooL is `TODO`
 
+Iteration 8 adds (`IMPLEMENTED` unless noted):
+
+- `processingStatus` and `chunks[]` on local evidence
+- `chunkIds` on findings and AI actions
+- `grounding`, `confidence`, and `references` on assistant messages
+- Deterministic retrieval in `lib/evidence` — not a vector index
+- XLSX extraction remains `TODO`
+
+See [EVIDENCE_INTELLIGENCE.md](EVIDENCE_INTELLIGENCE.md).
+
 ### Event
 
 Defined in full in `EVENT_MODEL.md` §2. Key fields: `eventId`, `auditId`,

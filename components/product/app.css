@@ -984,6 +984,41 @@
   margin: 0 0 var(--space-5);
 }
 
+.va-starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0 1rem 0.75rem;
+}
+
+.va-chip {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0.35rem 0.65rem;
+  font-size: var(--fs-meta);
+  cursor: pointer;
+}
+
+.va-chip:hover {
+  background: var(--hover);
+}
+
+.va-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.va-ref-list {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.va-ref-list a {
+  color: var(--accent-strong);
+}
+
 @media (max-width: 960px) {
   .va-ai-grid {
     grid-template-columns: 1fr;

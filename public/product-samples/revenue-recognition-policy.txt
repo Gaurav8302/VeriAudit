@@ -1,8 +1,18 @@
 Revenue Recognition Policy REV-POL-3 (sample)
 
-Revenue is recognised when a performance obligation is satisfied.
+Page 6
+Section 4.1 Timing
+Revenue is recognised when a performance obligation is satisfied and the customer has obtained control of the promised goods or services.
+
+Page 7
+Section 4.2 Recognition Criteria
 Milestone M2 on logistics contracts is satisfied only after recorded delivery.
+Do not recognise revenue for undelivered or partially delivered shipments.
+Transaction REV-1042 class entries require a delivery confirmation before recognition.
+
+Page 8
+Section 4.3 Approval
 The same person must not prepare and approve a material revenue entry.
-Approvals above $250,000 require a second reviewer.
+Approvals above $250,000 require a second reviewer who is not the preparer.
 
 This file is sample workspace data. It is not a sealed CooL export.
