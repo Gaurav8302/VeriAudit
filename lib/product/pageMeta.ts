@@ -13,7 +13,7 @@ const PAGES: Record<string, PageMeta> = {
   "/product/audits": {
     chrome: "Audits",
     title: "Audits",
-    lede: "Manage and inspect sample audit workspaces.",
+    lede: "Open an audit workspace or create a new one.",
   },
   "/product/audits/new": {
     chrome: "Create audit",
@@ -87,7 +87,11 @@ export function pageMeta(pathname: string): PageMeta {
     return { chrome: "Evidence", title: "Evidence", lede: "Artifacts attached to this audit." };
   }
   if (isAuditWorkspace(pathname)) {
-    return { chrome: "Audit", title: "Audit", lede: "A long-lived workspace for a case." };
+    return {
+      chrome: "Workspace",
+      title: "Workspace",
+      lede: "AI assistance, evidence, findings, and the live trace for one execution.",
+    };
   }
   return { chrome: "Product", title: "Product workspace", lede: "VeriAudit application." };
 }

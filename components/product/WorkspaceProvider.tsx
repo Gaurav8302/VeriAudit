@@ -17,13 +17,16 @@ import {
   applyAiTurn,
   asWorkspaceAudit,
   buildSampleExport,
+  canReopenAudit,
   clearLocalWorkspace,
+  closeExecution,
   createAudit,
   createExecution,
   EMPTY_WORKSPACE,
   evidenceFor,
   findingsFor,
   getLocalAudit,
+  hydrateWorkspaceExecutions,
   messagesFor,
   migrateReopens,
   parseWorkspace,
@@ -46,7 +49,6 @@ import {
 } from "@/lib/product/localWorkspace";
 import type { AiMode, AiProviderName, ProposedAction } from "@/lib/ai/types";
 import {
-  canReopen,
   mergeExecutions,
   type ProductExecution,
 } from "@/lib/product/lineage";
@@ -121,13 +123,16 @@ interface WorkspaceApi {
   findings: (auditId: string, executionId?: string) => LocalFinding[];
   activities: (auditId: string, executionId: string) => LocalActivity[];
   canReopen: (auditId: string) => boolean;
+  canClose: (auditId: string) => boolean;
   createAudit: (input: {
     title: string;
     domain: ProductDomain;
     description: string;
     reference?: string;
+    period?: string;
   }) => LocalAudit;
   createExecution: (auditId: string) => ProductExecution;
+  closeExecution: (auditId: string, executionId: string) => ProductExecution;
   reopen: (auditId: string) => ProductExecution;
   addEvidence: (input: Parameters<typeof addEvidence>[1]) => LocalEvidence;
   addFinding: (input: {
@@ -140,7 +145,11 @@ interface WorkspaceApi {
     evidenceIds?: readonly string[];
   }) => LocalFinding;
   updateFinding: (findingId: string, status: FindingLife) => LocalFinding;
-  reviewFinding: (findingId: string, review: Exclude<FindingReview, "pending">) => LocalFinding;
+  reviewFinding: (
+    findingId: string,
+    review: Exclude<FindingReview, "pending">,
+    note?: string,
+  ) => LocalFinding;
   messages: (auditId: string, executionId: string) => LocalMessage[];
   actions: (auditId: string, executionId: string) => LocalAiAction[];
   applyAiTurn: (input: {
@@ -185,14 +194,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         ...state.audits.map((audit) => asWorkspaceAudit(audit, state)),
       ],
       localAudit: (auditId) => getLocalAudit(state, auditId),
-      executions: (auditId) => mergeExecutions(auditId, state.extras[auditId] ?? []),
+      executions: (auditId) =>
+        hydrateWorkspaceExecutions(state, mergeExecutions(auditId, state.extras[auditId] ?? [])),
       extras: (auditId) => [...(state.extras[auditId] ?? [])],
       selectedId: (auditId) => selectedExecutionId(state, auditId),
       select: (auditId, executionId) => write(selectExecution(state, auditId, executionId)),
       evidence: (auditId, executionId) => evidenceFor(state, auditId, executionId),
       findings: (auditId, executionId) => findingsFor(state, auditId, executionId),
       activities: (auditId, executionId) => activitiesFor(state, auditId, executionId),
-      canReopen,
+      canReopen: (auditId) => canReopenAudit(state, auditId),
+      canClose: (auditId) => {
+        const selected = selectedExecutionId(state, auditId);
+        const execution = selected
+          ? mergeExecutions(auditId, state.extras[auditId] ?? []).find((item) => item.executionId === selected)
+          : null;
+        return Boolean(execution && !execution.immutable && execution.status === "open");
+      },
       createAudit: (input) => {
         const result = createAudit(state, input);
         write(result.state);
@@ -200,6 +217,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       },
       createExecution: (auditId) => {
         const result = createExecution(state, auditId);
+        write(result.state);
+        return result.execution;
+      },
+      closeExecution: (auditId, executionId) => {
+        const result = closeExecution(state, auditId, executionId);
         write(result.state);
         return result.execution;
       },
@@ -223,8 +245,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         write(result.state);
         return result.finding;
       },
-      reviewFinding: (findingId, review) => {
-        const result = reviewFinding(state, findingId, review);
+      reviewFinding: (findingId, review, note) => {
+        const result = reviewFinding(state, findingId, review, note);
         write(result.state);
         return result.finding;
       },

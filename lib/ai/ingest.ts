@@ -18,6 +18,7 @@ export interface IngestedFile {
   readonly fingerprint: string;
   readonly extraction: "text" | "unavailable";
   readonly textExcerpt: string | null;
+  readonly byteSize: number;
   readonly note: string;
 }
 
@@ -47,6 +48,7 @@ export function ingestFile(file: { name: string; type: string; bytes: Uint8Array
       fingerprint,
       extraction: "text",
       textExcerpt: text.slice(0, TEXT_EXCERPT_LIMIT),
+      byteSize: file.bytes.byteLength,
       note: text.length > TEXT_EXCERPT_LIMIT ? "Extracted text was truncated for analysis." : "Text extracted.",
     };
   }
@@ -57,6 +59,7 @@ export function ingestFile(file: { name: string; type: string; bytes: Uint8Array
     fingerprint,
     extraction: "unavailable",
     textExcerpt: null,
+    byteSize: file.bytes.byteLength,
     note: "This file was fingerprinted and attached. Deep text extraction for PDF/XLSX is not implemented.",
   };
 }

@@ -7,8 +7,8 @@
  */
 import { getWorkspaceAudit, HERO_AUDIT_ID, HERO_EXECUTION_ID } from "./workspace";
 
-export type ExecutionLife = "sealed" | "open" | "recorded" | "sample";
-export type AuditLife = ExecutionLife | "reopened" | "wip";
+export type ExecutionLife = "sealed" | "open" | "recorded" | "sample" | "closed";
+export type AuditLife = ExecutionLife | "reopened" | "wip" | "review_required";
 
 export interface ProductExecution {
   readonly executionId: string;
@@ -22,6 +22,7 @@ export interface ProductExecution {
   readonly findingCount: number;
   readonly hasEngineTrail: boolean;
   readonly immutable: boolean;
+  readonly closedAt?: string | null;
 }
 
 export const HERO_ORIGINAL_CREATED_AT = "2026-09-15T09:00:00.000Z";
@@ -155,18 +156,25 @@ export function getExecution(
 
 export function lifeLabel(status: AuditLife): string {
   if (status === "sealed") return "Sealed";
-  if (status === "open") return "Open";
+  if (status === "open") return "Active";
+  if (status === "closed") return "Closed";
+  if (status === "review_required") return "Review required";
   if (status === "reopened") return "Reopened";
   if (status === "recorded") return "Recorded";
   if (status === "wip") return "WIP";
   return "Sample";
 }
 
-export function auditLifeStatus(executions: readonly ProductExecution[]): AuditLife {
+export function auditLifeStatus(
+  executions: readonly ProductExecution[],
+  pendingReview = false,
+): AuditLife {
   const hasOpen = executions.some((item) => item.status === "open");
   const hasFinal = executions.some((item) => item.status === "sealed" || item.status === "recorded");
+  if (hasOpen && pendingReview) return "review_required";
   if (hasOpen && hasFinal) return "reopened";
   if (hasOpen) return "open";
+  if (executions.some((item) => item.status === "closed") && !hasOpen) return "closed";
   if (executions.some((item) => item.status === "sealed")) return "sealed";
   if (executions.some((item) => item.status === "recorded")) return "recorded";
   if (executions.length === 0) return "wip";

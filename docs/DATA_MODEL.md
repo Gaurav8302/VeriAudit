@@ -184,7 +184,20 @@ Iteration 6 adds execution-scoped AI records in the same store:
 - uploaded evidence may include `fingerprint` and a capped `textExcerpt`
 - AI findings include `originatingActionId` and a pending human review
 
-See [AI_INTEGRATION_PLAN.md](AI_INTEGRATION_PLAN.md).
+See [AI_INTEGRATION_PLAN.md](AI_INTEGRATION_PLAN.md) and
+[PRODUCT_WORKSPACE.md](PRODUCT_WORKSPACE.md).
+
+Iteration 7 adds (`IMPLEMENTED` unless noted):
+
+- optional `period` on `LocalAudit`
+- `byteSize` on uploaded evidence
+- `reviewNote` on findings
+- `execution.closed` activity
+- `ProductExecution.status: "closed"` and optional `closedAt`
+  (not part of `HERO_ORIGINAL_SNAPSHOT`)
+- `canonicalEventsFor()` — unsealed event candidates, not receipts
+- Persistence of these records remains `MOCK` (`localStorage`)
+- Sealing those candidates with CooL is `TODO`
 
 ### Event
 

@@ -20,18 +20,25 @@ export function WorkspaceActions({
   const writable = isWritableExecution(selected);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [findingOpen, setFindingOpen] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
+
+  function closeCurrent() {
+    if (!selected) return;
+    try {
+      workspace.closeExecution(auditId, selected.executionId);
+      setCloseError(null);
+    } catch (cause) {
+      setCloseError(cause instanceof Error ? cause.message : "This execution could not be closed.");
+    }
+  }
 
   return (
     <>
       <div className="va-actions">
         {workspace.canReopen(auditId) ? <ReopenAudit auditId={auditId} stayOnPage /> : null}
-        {!workspace.canReopen(auditId) ? (
-          <button
-            type="button"
-            className={primary === "work" ? "va-btn va-btn-primary" : "va-btn"}
-            onClick={() => workspace.createExecution(auditId)}
-          >
-            Create execution
+        {writable ? (
+          <button type="button" className={primary === "work" ? "va-btn va-btn-primary" : "va-btn"} onClick={closeCurrent}>
+            Close execution
           </button>
         ) : null}
         <button
@@ -51,11 +58,12 @@ export function WorkspaceActions({
           Add finding
         </button>
       </div>
+      {closeError ? <p className="va-empty">{closeError}</p> : null}
       {!writable ? (
         <p className="va-empty">
-          New evidence and findings belong on an open execution. Reopen the
-          audit or create an execution first. The original sealed record stays
-          unchanged.
+          {selected?.status === "closed"
+            ? `${selected.label} is closed. Reopen the audit to start a new execution. The closed record stays unchanged.`
+            : "New evidence and findings belong on an open execution. Reopen the audit or create an execution first. The original sealed record stays unchanged."}
         </p>
       ) : (
         <p className="va-empty">

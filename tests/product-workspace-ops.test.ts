@@ -5,6 +5,7 @@ import {
   addFinding,
   activitiesFor,
   buildSampleExport,
+  closeExecution,
   createAudit,
   createExecution,
   EMPTY_WORKSPACE,
@@ -95,7 +96,8 @@ describe("local workspace operations", () => {
       domain: "access",
       description: "Sample",
     });
-    const { state, execution } = createExecution(created.state, created.audit.auditId, "2026-12-10T11:00:00.000Z");
+    const closed = closeExecution(created.state, created.audit.auditId, created.execution.executionId, "2026-12-10T10:55:00.000Z");
+    const { state, execution } = createExecution(closed.state, created.audit.auditId, "2026-12-10T11:00:00.000Z");
     expect(execution.executionId).toBe("EXEC-LOCAL-001-002");
     expect(execution.parentExecutionId).toBe(created.execution.executionId);
     expect(state.extras[created.audit.auditId]).toHaveLength(2);
@@ -146,7 +148,8 @@ describe("local workspace operations", () => {
       domain: "financial",
       description: "Sample",
     });
-    const second = createExecution(created.state, created.audit.auditId);
+    const closed = closeExecution(created.state, created.audit.auditId, created.execution.executionId);
+    const second = createExecution(closed.state, created.audit.auditId);
     const withFinding = addFinding(second.state, {
       auditId: created.audit.auditId,
       executionId: second.execution.executionId,

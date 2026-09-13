@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { formatDay } from "@/lib/product/workspace";
-import type { FindingLife } from "@/lib/product/localWorkspace";
+import { findingReviewLabel } from "@/lib/product/localWorkspace";
+import { useState } from "react";
 import { useWorkspace } from "./WorkspaceProvider";
 
 export function LocalEvidenceDetail({
@@ -90,8 +91,9 @@ export function LocalEvidenceDetail({
         </section>
       ) : null}
       <p className="va-empty">
-        Evidence added to audit. Analysis: work in progress. Reference: {item.reference}. Added{" "}
-        {formatDay(item.createdAt)}.
+        Added {formatDay(item.createdAt)}
+        {item.byteSize ? ` · ${item.byteSize.toLocaleString()} bytes` : ""}. This
+        file is attached to the execution AI is working against.
       </p>
     </>
   );
@@ -108,6 +110,11 @@ export function LocalFindingDetail({
   const finding = workspace.findings(auditId).find((item) => item.findingId === findingId);
   const execution = workspace.executions(auditId).find((entry) => entry.executionId === finding?.executionId);
   const related = workspace.evidence(auditId).filter((item) => finding?.evidenceIds.includes(item.artifactId));
+  const originAction = finding
+    ? workspace.actions(auditId, finding.executionId).find((item) => item.actionId === finding.originatingActionId)
+    : null;
+  const [note, setNote] = useState("");
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   if (!workspace.ready) return <p className="va-empty">Loading finding…</p>;
   if (!finding) {
@@ -125,7 +132,7 @@ export function LocalFindingDetail({
         <Link href={`/product/audits/${auditId}/findings`}>← Findings</Link>
       </p>
       <p className="va-wip">
-        {finding.origin === "ai" ? "AI proposal · under review · unsealed" : "Sample finding · unsealed"}
+        {finding.origin === "ai" ? `AI proposal · ${findingReviewLabel(finding.review)} · unsealed` : "User finding · unsealed"}
       </p>
       <p className="va-lede">
         {finding.findingId} — {finding.title}
@@ -141,7 +148,7 @@ export function LocalFindingDetail({
         </div>
         <div>
           <dt>Status</dt>
-          <dd>{finding.status.replace("_", " ")}</dd>
+          <dd>{findingReviewLabel(finding.review)}</dd>
         </div>
         <div>
           <dt>Execution</dt>
@@ -157,7 +164,17 @@ export function LocalFindingDetail({
         </div>
         <div>
           <dt>Originating action</dt>
-          <dd>{finding.originatingActionId ?? "—"}</dd>
+          <dd>
+            {originAction ? (
+              <>
+                {originAction.type}
+                {" · "}
+                {originAction.title}
+              </>
+            ) : (
+              finding.originatingActionId ?? "—"
+            )}
+          </dd>
         </div>
       </dl>
       <section className="va-section">
@@ -181,28 +198,46 @@ export function LocalFindingDetail({
           </ul>
         )}
       </section>
-      <div className="va-actions">
-        {(["accepted", "modified", "rejected"] as const).map((review) => (
-          <button
-            key={review}
-            type="button"
-            className="va-btn"
-            onClick={() => workspace.reviewFinding(finding.findingId, review)}
-          >
-            {review === "accepted" ? "Accept" : review === "modified" ? "Modify" : "Reject"}
-          </button>
-        ))}
-        {(["open", "under_review", "resolved"] as FindingLife[]).map((status) => (
-          <button
-            key={status}
-            type="button"
-            className="va-btn"
-            onClick={() => workspace.updateFinding(finding.findingId, status)}
-          >
-            Mark {status.replace("_", " ")}
-          </button>
-        ))}
-      </div>
+      {finding.reviewNote ? (
+        <section className="va-section">
+          <h2>Human note</h2>
+          <p className="va-empty">{finding.reviewNote}</p>
+        </section>
+      ) : null}
+      <section className="va-section">
+        <h2>Review finding</h2>
+        <div className="va-form">
+          <label>
+            Modification note
+            <textarea
+              rows={3}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Required when you modify the AI proposal."
+            />
+          </label>
+        </div>
+        <div className="va-actions">
+          {(["accepted", "modified", "rejected"] as const).map((review) => (
+            <button
+              key={review}
+              type="button"
+              className="va-btn"
+              onClick={() => {
+                try {
+                  workspace.reviewFinding(finding.findingId, review, note);
+                  setReviewError(null);
+                } catch (cause) {
+                  setReviewError(cause instanceof Error ? cause.message : "Review could not be recorded.");
+                }
+              }}
+            >
+              {review === "accepted" ? "Accept" : review === "modified" ? "Modify" : "Reject"}
+            </button>
+          ))}
+        </div>
+        {reviewError ? <p className="va-empty">{reviewError}</p> : null}
+      </section>
       <p className="va-empty">Human review is separate from the AI proposal. This finding is unsealed.</p>
     </>
   );

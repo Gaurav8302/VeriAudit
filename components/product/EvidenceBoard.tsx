@@ -24,9 +24,9 @@ export function EvidenceBoard({
   return (
     <>
       <p className="va-lede">
-        <Term name="evidence">Evidence</Term> is the source material behind
-        audit decisions. Authored hero files stay unchanged. New items are
-        sample evidence, not uploaded documents.
+        <Term name="evidence">Evidence</Term> is what AI and reviewers work
+        against. Uploaded files stay on this execution. Catalog files are sample
+        records.
       </p>
       <WorkspaceActions auditId={auditId} />
       {current ? (
@@ -48,8 +48,8 @@ export function EvidenceBoard({
               <tr>
                 <th>Evidence</th>
                 <th>Type</th>
-                <th>Execution</th>
-                <th>Record</th>
+                <th>Fingerprint</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -63,7 +63,7 @@ export function EvidenceBoard({
                       <span className="meta">{item.artifactId}</span>
                     </td>
                     <td>{item.kind.replace("_", " ")}</td>
-                    <td>Execution 001</td>
+                    <td>—</td>
                     <td>
                       <span className="va-badge sample">Sample</span>
                     </td>
@@ -78,12 +78,17 @@ export function EvidenceBoard({
                     <span className="meta">{item.artifactId}</span>
                   </td>
                   <td>{item.kind}</td>
+                  <td>{item.fingerprint ? `${item.fingerprint.slice(0, 8)}…` : "—"}</td>
                   <td>
-                    {executions.find((execution) => execution.executionId === item.executionId)?.label ??
-                      item.executionId}
-                  </td>
-                  <td>
-                    <span className="va-badge sample">Sample evidence</span>
+                    <span className={item.sample ? "va-badge sample" : "va-badge open"}>
+                      {item.extraction === "text"
+                        ? "Ready"
+                        : item.extraction === "unavailable"
+                          ? "Fingerprint only"
+                          : item.sample
+                            ? "Sample"
+                            : "Ready"}
+                    </span>
                   </td>
                 </tr>
               ))}

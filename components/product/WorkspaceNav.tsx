@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { suffix: "", label: "Overview" },
+  { suffix: "", label: "Workspace" },
   { suffix: "/evidence", label: "Evidence" },
   { suffix: "/findings", label: "Findings" },
   { suffix: "/ai", label: "Ask VeriAudit" },

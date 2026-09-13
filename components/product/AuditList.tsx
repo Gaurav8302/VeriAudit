@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { domainLabel, filterAudits, formatDay } from "@/lib/product/workspace";
+import { domainLabel, filterAudits, formatRelative } from "@/lib/product/workspace";
 import { auditLifeStatus, latestActivity } from "@/lib/product/lineage";
 import { useWorkspace } from "./WorkspaceProvider";
 import { LifeBadge } from "./LifeBadge";
@@ -31,25 +31,27 @@ export function AuditList() {
               <th>Audit</th>
               <th>Domain</th>
               <th>Status</th>
-              <th>Executions</th>
-              <th>Findings</th>
-              <th>Evidence</th>
+              <th>Execution</th>
               <th>Last activity</th>
-              <th>Trace</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((audit) => {
               const executions = workspace.executions(audit.auditId);
+              const findings = workspace.findings(audit.auditId);
+              const pendingReview = findings.some((item) => item.review === "pending");
+              const current =
+                executions.find((item) => item.executionId === workspace.selectedId(audit.auditId)) ??
+                executions[executions.length - 1] ??
+                null;
               const status = executions.length
-                ? auditLifeStatus(executions)
+                ? auditLifeStatus(executions, pendingReview)
                 : audit.origin === "local"
                   ? "open"
                   : audit.hasEngineTrail
                     ? "recorded"
                     : "sample";
               const activity = latestActivity(audit.lastActivity, executions);
-              const hasTrace = executions.some((item) => item.hasEngineTrail);
               return (
                 <tr key={audit.auditId}>
                   <td>
@@ -60,11 +62,17 @@ export function AuditList() {
                   <td>
                     <LifeBadge status={status} />
                   </td>
-                  <td>{executions.length || audit.executionCount}</td>
-                  <td>{audit.findingCount}</td>
-                  <td>{audit.evidenceCount ?? 0}</td>
-                  <td>{formatDay(activity)}</td>
-                  <td>{hasTrace ? "Recorded" : "None yet"}</td>
+                  <td>
+                    {current ? (
+                      <>
+                        {current.label}
+                        <span className="meta">{current.status === "open" ? "Active" : current.status === "closed" ? "Closed" : current.status === "sealed" ? "Sealed" : "Recorded"}</span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>{formatRelative(activity)}</td>
                 </tr>
               );
             })}

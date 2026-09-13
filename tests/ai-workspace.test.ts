@@ -5,6 +5,7 @@ import {
   actionsFor,
   addEvidence,
   applyAiTurn,
+  closeExecution,
   createAudit,
   createExecution,
   EMPTY_WORKSPACE,
@@ -82,7 +83,8 @@ describe("AI workspace records", () => {
       domain: "financial",
       description: "Sample",
     });
-    const second = createExecution(created.state, created.audit.auditId);
+    const closed = closeExecution(created.state, created.audit.auditId, created.execution.executionId);
+    const second = createExecution(closed.state, created.audit.auditId);
     const applied = applyAiTurn(second.state, {
       auditId: created.audit.auditId,
       executionId: second.execution.executionId,

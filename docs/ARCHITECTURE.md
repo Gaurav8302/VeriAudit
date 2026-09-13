@@ -272,7 +272,12 @@ engine, simulation corpus, or CooL log.
 The product AI gateway lives in `lib/ai/`. Browser clients call
 `POST /api/product/ai/analyze`. Keys stay on the server. Provider SDKs are
 normalized before they reach the workspace. See
-[AI_INTEGRATION_PLAN.md](AI_INTEGRATION_PLAN.md).
+[AI_INTEGRATION_PLAN.md](AI_INTEGRATION_PLAN.md) and
+[PRODUCT_WORKSPACE.md](PRODUCT_WORKSPACE.md).
+Closing an execution makes it immutable (`IMPLEMENTED`). Reopening appends a
+child execution (`IMPLEMENTED`). Canonical event mapping exists
+(`IMPLEMENTED`). CooL sealing of new work does not (`TODO`). Workspace
+persistence is `MOCK` (`localStorage`).
 
 ```text
 veriaudit/

@@ -321,5 +321,8 @@ authored files and a sample JSON dataset that says it is not a sealed export.
 
 `POST /api/product/ai/analyze` returns one normalized reply plus structured
 actions. `POST /api/product/evidence/ingest` fingerprints an upload. Neither
-route exposes API keys. The Ask VeriAudit workspace is
-`/product/audits/[auditId]/ai`.
+route exposes API keys. The audit workspace is `/product/audits/[auditId]`.
+Ask VeriAudit remains at `/product/audits/[auditId]/ai`. Executions can be
+closed from the workspace (`IMPLEMENTED`). Reopen creates a later execution
+(`IMPLEMENTED`). New work is labelled unsealed. CooL sealing of that work is
+`TODO`. Persistence of product workspace records is `MOCK` (`localStorage`).

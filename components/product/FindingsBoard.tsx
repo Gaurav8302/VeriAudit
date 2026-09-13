@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { WorkspaceFinding } from "@/lib/product/workspace";
+import { findingReviewLabel } from "@/lib/product/localWorkspace";
 import { Term } from "./Term";
 import { WorkspaceActions } from "./WorkspaceActions";
 import { useWorkspace } from "./WorkspaceProvider";
@@ -24,8 +25,8 @@ export function FindingsBoard({
   return (
     <>
       <p className="va-lede">
-        A <Term name="finding">finding</Term> is an issue or exception
-        discovered during the audit. Live AI reasoning is not connected.
+        A <Term name="finding">finding</Term> is an exception that still needs a
+        human decision. AI proposals start open and are never auto-approved.
       </p>
       <WorkspaceActions auditId={auditId} />
       {current ? (
@@ -84,7 +85,7 @@ export function FindingsBoard({
                     <span className="meta">{finding.title}</span>
                   </td>
                   <td>{finding.severity}</td>
-                  <td>{finding.status.replace("_", " ")}</td>
+                  <td>{findingReviewLabel(finding.review)}</td>
                   <td>{finding.evidenceIds.join(", ") || "—"}</td>
                   <td>
                     <Link href={`/product/audits/${auditId}/executions/${finding.executionId}`}>

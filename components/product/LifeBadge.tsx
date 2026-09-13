@@ -6,12 +6,16 @@ export function LifeBadge({ status }: { status: AuditLife }) {
       ? "sealed"
       : status === "open"
         ? "open"
-        : status === "reopened"
-          ? "reopened"
-          : status === "wip"
-            ? "wip"
-            : status === "recorded"
-              ? "muted"
-              : "sample";
+        : status === "closed"
+          ? "closed"
+          : status === "review_required"
+            ? "review"
+            : status === "reopened"
+              ? "reopened"
+              : status === "wip"
+                ? "wip"
+                : status === "recorded"
+                  ? "muted"
+                  : "sample";
   return <span className={`va-badge ${tone}`}>{lifeLabel(status)}</span>;
 }

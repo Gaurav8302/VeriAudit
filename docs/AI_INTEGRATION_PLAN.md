@@ -1,7 +1,17 @@
 # AI integration plan
 
-Status of the Iteration 6 product-layer AI gateway on `new-product`.
+Status of the product-layer AI gateway on `new-product`.
 This is not the locked guided demo and not the CooL adapter.
+
+| Capability | State |
+|---|---|
+| Server gateway + fallback | IMPLEMENTED |
+| Structured actions on the execution | IMPLEMENTED |
+| Chat as explanation only | IMPLEMENTED |
+| Human review of AI findings | IMPLEMENTED |
+| Provider names as the product | MOCK — subtle “AI analysis / Mock analysis” only |
+| Live keys on Vercel | MOCK until the host has keys |
+| CooL sealing of AI work | TODO |
 
 ## Principle
 
@@ -211,7 +221,7 @@ review            pending | accepted | modified | rejected
 ```
 
 They are never auto-approved. Human accept / modify / reject is a
-separate activity.
+separate activity. Modify requires a short human note.
 
 ## Live trace
 

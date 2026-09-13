@@ -41,9 +41,8 @@ export function ReopenAudit({
           >
             <h2 id="reopen-title">Reopen audit?</h2>
             <p>
-              This will create a new execution connected to the existing sealed
-              execution. The original execution and its trail will remain
-              unchanged.
+              This will create a new execution connected to the previous one.
+              The earlier execution and its trail will remain unchanged.
             </p>
             <div className="va-actions">
               <button type="button" className="va-btn" onClick={() => setOpen(false)}>

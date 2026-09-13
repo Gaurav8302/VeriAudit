@@ -14,12 +14,13 @@ export function CreateAuditForm() {
   const [domain, setDomain] = useState<ProductDomain>("financial");
   const [description, setDescription] = useState("");
   const [reference, setReference] = useState("");
+  const [period, setPeriod] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     try {
-      const audit = workspace.createAudit({ title, domain, description, reference });
+      const audit = workspace.createAudit({ title, domain, description, reference, period });
       router.push(`/product/audits/${audit.auditId}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not create the audit.");
@@ -29,9 +30,9 @@ export function CreateAuditForm() {
   return (
     <>
       <p className="va-intro">
-        You are creating an <Term name="audit">audit</Term> workspace. AI
-        analysis and cryptographic sealing are part of the full product
-        workflow, but they are currently work in progress.
+        You are creating an <Term name="audit">audit</Term> workspace. A new
+        execution starts immediately. AI can assist; humans review findings.
+        New work stays unsealed.
       </p>
       <form className="va-section" onSubmit={submit}>
         <h2>New audit</h2>
@@ -41,7 +42,7 @@ export function CreateAuditForm() {
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Q4 Vendor Access Review"
+              placeholder="Q4 Revenue Recognition Review"
               required
             />
           </label>
@@ -62,6 +63,14 @@ export function CreateAuditForm() {
               onChange={(event) => setDescription(event.target.value)}
               rows={4}
               placeholder="What is in scope, and why this review exists."
+            />
+          </label>
+          <label>
+            Optional period
+            <input
+              value={period}
+              onChange={(event) => setPeriod(event.target.value)}
+              placeholder="2026-Q4"
             />
           </label>
           <label>

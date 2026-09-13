@@ -239,6 +239,20 @@ export function formatDay(iso: string): string {
   });
 }
 
+export function formatRelative(iso: string, now = Date.now()): string {
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return formatDay(iso);
+  const delta = Math.max(0, now - then);
+  const minutes = Math.round(delta / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.round(hours / 24);
+  if (days < 14) return `${days} day${days === 1 ? "" : "s"} ago`;
+  return formatDay(iso);
+}
+
 export function formatClock(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-GB", {
     hour: "2-digit",

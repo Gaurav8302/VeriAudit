@@ -83,9 +83,18 @@ export function ExecutionDetail({
               : " The original record remains unchanged if this audit is reopened later."}
           </p>
         </section>
+      ) : execution.status === "closed" ? (
+        <section className="va-section">
+          <h2>Closed execution</h2>
+          <p className="va-empty">
+            {execution.label} closed on {formatDay(execution.closedAt ?? execution.createdAt)}.
+            This record cannot be edited. Reopen the audit to start a later
+            execution. Status: unsealed — not cryptographically verified.
+          </p>
+        </section>
       ) : (
         <section className="va-section">
-          <h2>{parent ? "Rework execution" : "Unsealed execution"}</h2>
+          <h2>{parent ? "Rework execution" : "Active execution"}</h2>
           {parent ? (
             <div className="va-empty">
               <p>Reopened from</p>
@@ -93,20 +102,18 @@ export function ExecutionDetail({
               <p>{parent.label}</p>
             </div>
           ) : (
-            <p className="va-empty">
-              This execution is open. Activity here is local product work.
-            </p>
+            <p className="va-empty">This execution is active. Activity here is local product work.</p>
           )}
           <p className="va-empty">
             Status: unsealed. These activities have not been cryptographically
-            sealed. This is a WIP workspace.
+            sealed.
           </p>
         </section>
       )}
 
       <dl className="va-detail">
         <div>
-          <dt>Events</dt>
+          <dt>{execution.hasEngineTrail ? "Events" : "Actions"}</dt>
           <dd>{execution.eventCount ?? "—"}</dd>
         </div>
         <div>
@@ -115,7 +122,10 @@ export function ExecutionDetail({
         </div>
         <div>
           <dt>Started</dt>
-          <dd>{formatDay(execution.createdAt)}</dd>
+          <dd>
+            {formatDay(execution.createdAt)}
+            {execution.closedAt ? ` · Closed ${formatDay(execution.closedAt)}` : ""}
+          </dd>
         </div>
         <div>
           <dt>Connection</dt>

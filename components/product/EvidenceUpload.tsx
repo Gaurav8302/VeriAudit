@@ -31,6 +31,7 @@ export function EvidenceUpload({
         fingerprint?: string;
         extraction?: "text" | "unavailable";
         textExcerpt?: string | null;
+        byteSize?: number;
         note?: string;
       };
       if (!response.ok || !payload.filename || !payload.fingerprint) {
@@ -47,6 +48,7 @@ export function EvidenceUpload({
         fingerprint: payload.fingerprint,
         extraction: payload.extraction,
         textExcerpt: payload.textExcerpt ?? null,
+        byteSize: payload.byteSize ?? file.size,
         sample: false,
       });
       setNote(payload.note ?? "Evidence added to audit. Analysis: work in progress until you ask VeriAudit.");

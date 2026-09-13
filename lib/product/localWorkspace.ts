@@ -32,7 +32,8 @@ export type ActivityType =
   | "finding.reviewed"
   | "ai.action.started"
   | "ai.action.completed"
-  | "ai.action.failed";
+  | "ai.action.failed"
+  | "execution.closed";
 export type FindingOrigin = "user" | "ai";
 export type FindingReview = "pending" | "accepted" | "modified" | "rejected";
 export type EvidenceExtraction = "text" | "unavailable" | "none";
@@ -46,6 +47,7 @@ export interface LocalAudit {
   readonly createdAt: string;
   readonly status: "open";
   readonly origin: "local";
+  readonly period: string | null;
 }
 
 export interface LocalEvidence {
@@ -63,6 +65,7 @@ export interface LocalEvidence {
   readonly fingerprint: string | null;
   readonly extraction: EvidenceExtraction;
   readonly textExcerpt: string | null;
+  readonly byteSize: number | null;
 }
 
 export interface LocalFinding {
@@ -78,6 +81,7 @@ export interface LocalFinding {
   readonly origin: FindingOrigin;
   readonly originatingActionId: string | null;
   readonly review: FindingReview;
+  readonly reviewNote: string | null;
 }
 
 export interface LocalMessage {
@@ -195,8 +199,24 @@ export function parseWorkspace(raw: unknown): WorkspaceState {
   };
 }
 
+export function hydrateWorkspaceExecutions(
+  state: WorkspaceState,
+  executions: readonly ProductExecution[],
+): ProductExecution[] {
+  return executions.map((execution) => {
+    if (execution.hasEngineTrail) return execution;
+    return {
+      ...execution,
+      eventCount: state.actions.filter(
+        (item) => item.executionId === execution.executionId && item.status === "completed",
+      ).length,
+      findingCount: findingsFor(state, execution.auditId, execution.executionId).length,
+    };
+  });
+}
+
 export function executionsOf(state: WorkspaceState, auditId: string): ProductExecution[] {
-  return mergeExecutions(auditId, state.extras[auditId] ?? []);
+  return hydrateWorkspaceExecutions(state, mergeExecutions(auditId, state.extras[auditId] ?? []));
 }
 
 export function isHeroOriginal(executionId: string): boolean {
@@ -215,7 +235,7 @@ export function assertWritable(state: WorkspaceState, auditId: string, execution
   if (!execution) {
     throw new Error("That execution is not part of this audit.");
   }
-  if (execution.immutable || execution.hasEngineTrail) {
+  if (execution.immutable || execution.hasEngineTrail || execution.status === "closed") {
     throw new Error("New work belongs on a later execution. The original record stays unchanged.");
   }
   return execution;
@@ -258,6 +278,7 @@ export function createAudit(
     domain: ProductDomain;
     description: string;
     reference?: string;
+    period?: string;
     createdAt?: string;
   },
 ): { state: WorkspaceState; audit: LocalAudit; execution: ProductExecution } {
@@ -274,6 +295,7 @@ export function createAudit(
     createdAt,
     status: "open",
     origin: "local",
+    period: input.period?.trim() || null,
   };
   const execution: ProductExecution = {
     executionId: `EXEC-LOCAL-${pad(n)}-001`,
@@ -331,6 +353,9 @@ export function createExecution(
 
   const at = createdAt ?? new Date().toISOString();
   const current = executionsOf(state, auditId);
+  if (current.some(isWritableExecution)) {
+    throw new Error("Close the current execution before opening a new one.");
+  }
   const extras = [...(state.extras[auditId] ?? [])];
   const parent = current[current.length - 1] ?? extras[extras.length - 1] ?? null;
   const sequence = current.length + 1;
@@ -364,6 +389,52 @@ export function createExecution(
   };
 }
 
+export function closeExecution(
+  state: WorkspaceState,
+  auditId: string,
+  executionId: string,
+  closedAt?: string,
+): { state: WorkspaceState; execution: ProductExecution } {
+  const current = assertWritable(state, auditId, executionId);
+  const at = closedAt ?? new Date().toISOString();
+  const execution: ProductExecution = {
+    ...current,
+    status: "closed",
+    immutable: true,
+    closedAt: at,
+  };
+  const extras = (state.extras[auditId] ?? []).map((item) =>
+    item.executionId === executionId ? execution : item,
+  );
+  return {
+    state: withActivity(
+      { ...state, extras: { ...state.extras, [auditId]: extras } },
+      {
+        auditId,
+        executionId,
+        type: "execution.closed",
+        title: "Execution closed",
+        detail: `${current.label} is closed. Later work belongs on a new execution.`,
+        occurredAt: at,
+      },
+    ),
+    execution,
+  };
+}
+
+export function canReopenAudit(state: WorkspaceState, auditId: string): boolean {
+  if (auditId === HERO_AUDIT_ID) return true;
+  const list = executionsOf(state, auditId);
+  return list.length > 0 && !list.some(isWritableExecution);
+}
+
+export function findingReviewLabel(review: FindingReview): string {
+  if (review === "pending") return "Open";
+  if (review === "accepted") return "Accepted";
+  if (review === "modified") return "Modified";
+  return "Rejected";
+}
+
 export function addEvidence(
   state: WorkspaceState,
   input: {
@@ -380,6 +451,7 @@ export function addEvidence(
     fingerprint?: string | null;
     extraction?: EvidenceExtraction;
     textExcerpt?: string | null;
+    byteSize?: number | null;
   },
 ): { state: WorkspaceState; evidence: LocalEvidence } {
   const execution = assertWritable(state, input.auditId, input.executionId);
@@ -402,6 +474,7 @@ export function addEvidence(
     fingerprint: input.fingerprint ?? null,
     extraction: input.extraction ?? "none",
     textExcerpt: input.textExcerpt ?? null,
+    byteSize: input.byteSize ?? null,
   };
   return {
     state: withActivity(
@@ -452,7 +525,8 @@ export function addFinding(
     createdAt,
     origin,
     originatingActionId: input.originatingActionId ?? null,
-    review: input.review ?? (origin === "ai" ? "pending" : "pending"),
+    review: input.review ?? "pending",
+    reviewNote: null,
   };
   const extras = (state.extras[input.auditId] ?? []).map((item) =>
     item.executionId === execution.executionId
@@ -552,17 +626,21 @@ export function reviewFinding(
   state: WorkspaceState,
   findingId: string,
   review: Exclude<FindingReview, "pending">,
+  note?: string,
   occurredAt?: string,
 ): { state: WorkspaceState; finding: LocalFinding } {
   const current = state.findings.find((item) => item.findingId === findingId);
   if (!current) throw new Error("That finding does not exist.");
   assertWritable(state, current.auditId, current.executionId);
-  const status: FindingLife =
-    review === "accepted" || review === "modified" ? "resolved" : review === "rejected" ? "resolved" : current.status;
+  const reviewNote = note?.trim() || null;
+  if (review === "modified" && !reviewNote) {
+    throw new Error("Add a short note explaining the modification.");
+  }
   const finding: LocalFinding = {
     ...current,
     review,
-    status: review === "rejected" ? "resolved" : status,
+    reviewNote,
+    status: "resolved",
   };
   return {
     state: withActivity(
@@ -575,7 +653,7 @@ export function reviewFinding(
         executionId: current.executionId,
         type: "finding.reviewed",
         title: "Human review",
-        detail: `Finding ${review}`,
+        detail: reviewNote ? `${findingReviewLabel(review)}: ${reviewNote}` : findingReviewLabel(review),
         occurredAt: occurredAt ?? new Date().toISOString(),
       },
     ),
@@ -752,7 +830,7 @@ export function asWorkspaceAudit(audit: LocalAudit, state: WorkspaceState): Work
     title: audit.title,
     domain: audit.domain,
     status: "open",
-    period: audit.createdAt.slice(0, 7),
+    period: audit.period ?? audit.createdAt.slice(0, 7),
     openedAt: audit.createdAt,
     lastActivity: state.activities
       .filter((item) => item.auditId === audit.auditId)

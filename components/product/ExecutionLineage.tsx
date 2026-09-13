@@ -48,12 +48,17 @@ export function ExecutionLineage({
                 <strong>{execution.label}</strong>
                 <LifeBadge status={execution.status} />
               </header>
-              <p>{formatDay(execution.createdAt)}</p>
+              <p>
+                Started: {formatDay(execution.createdAt)}
+                {execution.closedAt ? ` · Closed: ${formatDay(execution.closedAt)}` : ""}
+              </p>
               <p className="meta">
                 {execution.eventCount === null
                   ? "No recorded event count"
-                  : `${execution.eventCount} events`}
-                {` · ${execution.findingCount} findings`}
+                  : execution.hasEngineTrail
+                    ? `${execution.eventCount} events`
+                    : `${execution.eventCount} actions`}
+                {` · ${execution.findingCount} ${execution.findingCount === 1 ? "finding" : "findings"}`}
               </p>
               {parent ? (
                 <p className="va-exec-note">
