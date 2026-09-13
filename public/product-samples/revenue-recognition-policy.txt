@@ -1,0 +1,8 @@
+Revenue Recognition Policy REV-POL-3 (sample)
+
+Revenue is recognised when a performance obligation is satisfied.
+Milestone M2 on logistics contracts is satisfied only after recorded delivery.
+The same person must not prepare and approve a material revenue entry.
+Approvals above $250,000 require a second reviewer.
+
+This file is sample workspace data. It is not a sealed CooL export.

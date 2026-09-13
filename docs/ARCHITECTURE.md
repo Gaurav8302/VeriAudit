@@ -7,8 +7,12 @@ Derived from the repository inspection and from the SDK findings in
 > CooL layer, the audit engine, the four scenarios, the event manager, the
 > append-only execution trail, the three-month simulation corpus, and
 > deterministic search + reconstruction, and the **demo contract / state
-> machine** are built. Product UI is still planned. `[M1]`–`[M6A]` in §6
-> mark what exists.
+> machine** are built. `[M1]`–`[M6A]` in §6 mark what exists.
+>
+> **Product application (new-product).** `/` is the public landing, `/demo` is
+> the locked guided demo, and `/product` is the application shell. The first
+> functional product area is the audit workspace. See
+> [PRODUCT_APPLICATION.md](PRODUCT_APPLICATION.md).
 
 ---
 
@@ -259,7 +263,16 @@ Event manager
 
 ## 6. Module map
 
-`[M1]`–`[M6A]` exist; product UI is still planned.
+`[M1]`–`[M6A]` exist. The product application shell and hero audit workspace
+live on `new-product` at `/product` — see [PRODUCT_APPLICATION.md](PRODUCT_APPLICATION.md).
+Reopened executions and local mock audits are product-layer records in
+`localStorage` (`veriaudit.product.workspace.v1`). They do not enter the audit
+engine, simulation corpus, or CooL log.
+
+The product AI gateway lives in `lib/ai/`. Browser clients call
+`POST /api/product/ai/analyze`. Keys stay on the server. Provider SDKs are
+normalized before they reach the workspace. See
+[AI_INTEGRATION_PLAN.md](AI_INTEGRATION_PLAN.md).
 
 ```text
 veriaudit/

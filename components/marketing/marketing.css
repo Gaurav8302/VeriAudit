@@ -55,6 +55,11 @@
   gap: 0.75rem;
 }
 
+.site-nav-end .site-text {
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
 .site-menu {
   display: none;
   appearance: none;

@@ -377,6 +377,15 @@ From the guideline §20 acceptance checklist:
 
 ---
 
+## Product application (after the locked demo)
+
+The judging demo stays the P0 path above. On `new-product`, a separate
+application shell lives at `/product`. Iteration 2 makes the hero audit
+workspace explorable. It does not replace the demo, implement AI, or add
+auth. See [PRODUCT_APPLICATION.md](PRODUCT_APPLICATION.md).
+
+---
+
 ## The path that matters
 
 Everything else is secondary (guideline final instruction):

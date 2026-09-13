@@ -131,3 +131,6 @@ Do not use: “100% trustworthy”, “AI cannot be wrong”, “Guaranteed auth
 
 The state machine rejects illegal jumps. Drive the UI from `session.state`
 and `session.phase` only.
+
+The product application at `/product` is a later, separate experience. Do not
+collapse it into the guided demo. See [PRODUCT_APPLICATION.md](PRODUCT_APPLICATION.md).

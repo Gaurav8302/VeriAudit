@@ -151,6 +151,41 @@ the conclusion to the root. Regenerated GETs have `treeHead: null` and
 `POST /api/audits/:id/integrity` with the session's receipts and `logState`
 is what produces `verified`.
 
+### Product execution lineage (`new-product`)
+
+The engine `Execution` above is unchanged. The product workspace adds a thin
+client-side lineage layer in `lib/product/lineage.ts`:
+
+- An **audit** can hold many executions.
+- The hero original (`EXEC-FIN-2026-09-001`) is a frozen catalog record.
+- Reopen appends a new execution that references the previous one.
+- The original events, findings, timestamps, and reconstruction are never
+  rewritten.
+- The new execution has its own empty trace. No fabricated events. No CooL
+  receipts.
+
+This is not a second audit engine and not a second event system.
+
+### Local product workspace (`new-product`, Iteration 5)
+
+`lib/product/localWorkspace.ts` adds client-side mock records:
+
+- `LocalAudit` — `AUD-LOCAL-00N`, status open, no receipts
+- `LocalEvidence` — metadata only, labelled sample evidence
+- `LocalFinding` — unsealed product finding
+- `LocalActivity` — execution-specific, `sealed: false`
+
+These never write into `EXEC-FIN-2026-09-001`.
+
+Iteration 6 adds execution-scoped AI records in the same store:
+
+- `LocalMessage` — conversation, not an audit event
+- `LocalAiAction` — started / completed / failed structured work
+- uploaded evidence may include `fingerprint` and a capped `textExcerpt`
+- AI findings include `originatingActionId` and a pending human review
+
+See [AI_INTEGRATION_PLAN.md](AI_INTEGRATION_PLAN.md).
+
 ### Event
 
 Defined in full in `EVENT_MODEL.md` §2. Key fields: `eventId`, `auditId`,

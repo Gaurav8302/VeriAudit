@@ -10,7 +10,9 @@ the audit API. Milestone 3 — the append-only execution trail, rehydration, and
 historical tamper detection. Milestone 4 — the deterministic three-month
 simulation that buries the hero audit. Milestone 5 — inverted-index search and
 recorded-execution reconstruction. Milestone 6A — frontend contract and demo
-state machine. 135 tests passing. No visual frontend has started.
+state machine. The locked guided demo lives at `/demo`. The product application
+shell and hero audit workspace live at `/product` on `new-product` — see
+[PRODUCT_APPLICATION.md](PRODUCT_APPLICATION.md).
 
 ## Reading order
 
@@ -34,6 +36,7 @@ state machine. 135 tests passing. No visual frontend has started.
 | 13 | [TESTING_PLAN.md](TESTING_PLAN.md) | tests per area, release blockers |
 | 14 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | the 8-hour plan, P0/P1/P2, risk register |
 | 15 | [README_PLAN.md](README_PLAN.md) | plan for the public root README |
+| 16 | [PRODUCT_APPLICATION.md](PRODUCT_APPLICATION.md) | product shell, audit workspace, temporary landing shortcut |
 
 Reproducible SDK evidence lives in [`../cool-proof/`](../cool-proof). Upstream
 SDK documentation in `../cool-sdk/docs/` is cited rather than duplicated.

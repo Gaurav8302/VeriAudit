@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FAQS } from "@/components/marketing/copy";
+import { PRODUCT_SHORTCUT } from "@/components/marketing/product-shortcut";
 
 describe("public landing copy", () => {
   it("keeps the FAQ honest about product maturity", () => {
@@ -19,5 +20,10 @@ describe("public landing copy", () => {
     const trace = FAQS.find((item) => item.q === "What is an execution trace?");
     expect(trace?.a).toMatch(/recorded causal path/i);
     expect(trace?.a).toMatch(/not a new explanation/i);
+  });
+
+  it("keeps the temporary product shortcut secondary and labelled unfinished", () => {
+    expect(PRODUCT_SHORTCUT.href).toBe("/product");
+    expect(PRODUCT_SHORTCUT.note).toMatch(/work in progress/i);
   });
 });
