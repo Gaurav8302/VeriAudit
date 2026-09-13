@@ -10,9 +10,9 @@ function source(rel: string) {
 
 describe("AI frontline product UX", () => {
   it("positions the home and create pages as AI-assisted audit work", () => {
-    expect(pageMeta("/product").lede).toMatch(/AI-assisted audit work/i);
+    expect(pageMeta("/product").lede).toMatch(/AI-powered audit work/i);
     expect(pageMeta("/product/audits/new").lede).toMatch(/AI assistant/i);
-    expect(pageMeta("/product/audits/AUD-FIN-2026-09/ai").chrome).toBe("AI Assistant");
+    expect(pageMeta("/product/audits/AUD-FIN-2026-09/ai").chrome).toBe("Workspace");
     expect(TERMS.assistant).toMatch(/records those actions on the execution/i);
   });
 
@@ -25,7 +25,7 @@ describe("AI frontline product UX", () => {
     expect(workspace).toMatch(/Recorded to execution/);
     expect(workspace).not.toMatch(/cryptographically sealed until/);
     expect(create).toMatch(/AI audit assistant/);
-    expect(nav).toMatch(/AI Assistant/);
-    expect(nav.indexOf("/ai")).toBeLessThan(nav.indexOf("/evidence"));
+    expect(nav).toMatch(/Workspace/);
+    expect(nav.indexOf("/evidence")).toBeLessThan(nav.indexOf("/trace"));
   });
 });

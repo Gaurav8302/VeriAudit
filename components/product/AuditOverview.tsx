@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { formatDay, heroConclusion, HERO_AUDIT_ID } from "@/lib/product/workspace";
-import type { AuditWorkspaceData } from "@/lib/product/load";
 import { findingReviewLabel, isWritableExecution } from "@/lib/product/localWorkspace";
-import { Term } from "./Term";
+import type { AuditWorkspaceData } from "@/lib/product/load";
+import { HERO_AUDIT_ID } from "@/lib/product/workspace";
 import { AiWorkspace } from "./AiWorkspace";
-import { WorkspaceActions } from "./WorkspaceActions";
+import { DemoMark } from "./LifeBadge";
+import { LiveExecutionLedger } from "./LiveExecutionLedger";
+import { SealPanel } from "./SealPanel";
+import { useAuditPhase } from "./useAuditPhase";
 import { useWorkspace } from "./WorkspaceProvider";
-import { LifeBadge } from "./LifeBadge";
 
 export function AuditOverview({
   auditId,
@@ -18,15 +19,12 @@ export function AuditOverview({
   catalog: AuditWorkspaceData | null;
 }) {
   const workspace = useWorkspace();
+  const { execution, findings, evidence, phase } = useAuditPhase(auditId);
   const local = workspace.localAudit(auditId);
-  const executions = workspace.executions(auditId);
-  const selected = workspace.selectedId(auditId);
-  const current = executions.find((item) => item.executionId === selected);
-  const localFindings = selected ? workspace.findings(auditId, selected) : workspace.findings(auditId);
-  const localEvidence = selected ? workspace.evidence(auditId, selected) : workspace.evidence(auditId);
-  const hero = auditId === HERO_AUDIT_ID ? heroConclusion() : catalog?.conclusion;
-  const title = catalog?.audit.title ?? local?.title ?? auditId;
-  const writable = isWritableExecution(current ?? null);
+  const writable = isWritableExecution(execution);
+  const catalogEvidence = execution?.sequence === 1 ? catalog?.evidence ?? [] : [];
+  const catalogFindings = execution?.sequence === 1 ? catalog?.findings ?? [] : [];
+  const showCatalog = auditId === HERO_AUDIT_ID || (!local && Boolean(catalog));
 
   if (!catalog && !local && workspace.ready) {
     return (
@@ -39,99 +37,65 @@ export function AuditOverview({
 
   return (
     <div className="va-workspace-canvas">
-      <dl className="va-detail">
-        <div>
-          <dt>Audit</dt>
-          <dd>{title}</dd>
-        </div>
-        <div>
-          <dt>Execution</dt>
-          <dd>
-            {current ? (
-              <>
-                {current.label} · {current.executionId}
-              </>
-            ) : (
-              "—"
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>Status</dt>
-          <dd>{current ? <LifeBadge status={current.status} /> : "—"}</dd>
-        </div>
-        <div>
-          <dt>Opened</dt>
-          <dd>{formatDay(catalog?.audit.openedAt ?? local?.createdAt ?? "")}</dd>
-        </div>
-      </dl>
-      <p className="va-lede">
-        The <Term name="assistant">assistant</Term> works on this{" "}
-        <Term name="audit">audit</Term>. Humans review. Every meaningful action
-        is recorded on {current?.label ?? "this execution"}.
-        {current?.status === "closed"
-          ? " This execution is closed."
-          : writable
-            ? " This execution is active and unsealed."
-            : " Historical work stays intact."}
-      </p>
-      <WorkspaceActions auditId={auditId} />
-      {local ? (
-        <p className="va-empty">
-          {local.description || "No description yet."}
-          {local.period ? ` Period: ${local.period}.` : ""}
-          {local.reference ? ` Reference: ${local.reference}.` : ""}
-        </p>
-      ) : null}
+      {local?.description ? <p className="va-lede">{local.description}</p> : null}
 
-      <AiWorkspace auditId={auditId} />
+      <div className="va-stage">
+        <AiWorkspace auditId={auditId} compact />
+        <LiveExecutionLedger auditId={auditId} />
+      </div>
 
       <div className="va-rail-grid">
-        <section className="va-section">
-          <h2>Evidence on this execution</h2>
-          {localEvidence.length > 0 ? (
+        <section className="va-panel-quiet">
+          <h2>Evidence available to AI</h2>
+          {evidence.length > 0 || catalogEvidence.length > 0 ? (
             <ul className="va-list">
-              {localEvidence.map((item) => (
+              {evidence.map((item) => (
                 <li key={item.artifactId}>
                   <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>
                     <strong>{item.filename ?? item.title}</strong>
                   </Link>
                   <span>
                     {item.kind}
-                    {item.fingerprint ? ` · ${item.fingerprint.slice(0, 8)}…` : ""}
-                    {item.extraction === "text"
-                      ? " · Ready"
-                      : item.extraction === "unavailable"
-                        ? " · Fingerprint only"
-                        : " · Metadata"}
+                    {item.fingerprint ? ` · ${item.fingerprint.slice(0, 10)}` : ""}
+                    {item.extraction === "text" ? " · Ready" : ""}
                   </span>
                 </li>
               ))}
-            </ul>
-          ) : current?.sequence === 1 && catalog?.evidence.length ? (
-            <ul className="va-list">
-              {catalog.evidence.map((item) => (
-                <li key={item.artifactId}>
-                  <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>
-                    <strong>{item.title}</strong>
-                  </Link>
-                  <span>{item.kind} · Sample</span>
-                </li>
-              ))}
+              {evidence.length === 0
+                ? catalogEvidence.map((item) => (
+                    <li key={item.artifactId}>
+                      <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>
+                        <strong>{item.title}</strong>
+                      </Link>
+                      <span>
+                        {item.kind} <DemoMark />
+                      </span>
+                    </li>
+                  ))
+                : null}
             </ul>
           ) : (
             <p className="va-empty">
-              No evidence uploaded yet. This is the evidence AI works against.
+              No evidence on this execution yet.
+              {writable ? " Add evidence, then ask the assistant to review it." : ""}
             </p>
           )}
+          {writable ? (
+            <p className="va-inline-row">
+              <Link href={`/product/audits/${auditId}/evidence`}>Add evidence</Link>
+              {" · "}
+              <a href="#ai-assistant">Ask AI to review</a>
+            </p>
+          ) : null}
         </section>
-        <section className="va-section">
-          <h2>Findings needing attention</h2>
-          {localFindings.length === 0 && !catalog?.findings.length ? (
+
+        <section className="va-panel-quiet">
+          <h2>Findings</h2>
+          {findings.length === 0 && catalogFindings.length === 0 ? (
             <p className="va-empty">No findings on this execution yet.</p>
           ) : (
             <ul className="va-list">
-              {localFindings.map((finding) => (
+              {findings.map((finding) => (
                 <li key={finding.findingId}>
                   <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
                     <strong>
@@ -140,52 +104,38 @@ export function AuditOverview({
                   </Link>
                   <span>
                     {finding.severity} · {findingReviewLabel(finding.review)}
+                    {finding.origin === "ai" ? " · AI proposal" : ""}
                   </span>
                 </li>
               ))}
-              {current?.sequence === 1 &&
-                catalog?.findings.map((finding) => (
-                  <li key={finding.findingId}>
-                    <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
-                      <strong>
-                        {finding.findingId} — {finding.title}
-                      </strong>
-                    </Link>
-                    <span>{finding.review} · Sample</span>
-                  </li>
-                ))}
+              {findings.length === 0
+                ? catalogFindings.map((finding) => (
+                    <li key={finding.findingId}>
+                      <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
+                        <strong>
+                          {finding.findingId} — {finding.title}
+                        </strong>
+                      </Link>
+                      <span>
+                        {finding.review} <DemoMark />
+                      </span>
+                    </li>
+                  ))
+                : null}
             </ul>
           )}
         </section>
       </div>
 
-      {hero && (
-        <section className="va-section">
-          <h2>Sealed sample result</h2>
-          <div className="va-stats">
-            <div>
-              <strong>{hero.controlsTested}</strong>
-              <span>Tested</span>
-            </div>
-            <div>
-              <strong>{hero.controlsPassed}</strong>
-              <span>Passed</span>
-            </div>
-            <div>
-              <strong>{hero.exceptions}</strong>
-              <span>Exceptions</span>
-            </div>
-            <div>
-              <strong>{hero.humanReviews}</strong>
-              <span>Reviews</span>
-            </div>
-          </div>
-          <p className="va-empty">
-            These figures belong to the sealed original. They are not a live AI
-            result.
-          </p>
-        </section>
-      )}
+      {phase === "ready_to_seal" || phase === "sealed" ? (
+        <div id="execution-seal">
+          <SealPanel auditId={auditId} confirmOpen={phase === "ready_to_seal"} />
+        </div>
+      ) : showCatalog && execution?.hasEngineTrail ? (
+        <p className="va-empty">
+          This catalog execution is recorded for orientation. It is not a live CooL seal.
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -7,9 +7,8 @@ export default function ExecutionsPage() {
   return (
     <>
       <p className="va-intro">
-        An audit is the long-lived case. An execution is one recorded run.
-        Reopening later creates a new execution rather than rewrite the old
-        one.
+        Activity across recorded executions. An execution is one run inside an
+        audit. Reopening creates a new execution and leaves the old one unchanged.
       </p>
       <GlobalExecutionList catalog={executions} />
     </>

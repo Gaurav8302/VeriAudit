@@ -422,7 +422,11 @@ export function createExecution(
     hasEngineTrail: false,
     immutable: false,
   };
-  const after = setExtras(state, auditId, [...extras.filter((item) => item.executionId !== execution.executionId), execution]);
+  const after = selectExecution(
+    setExtras(state, auditId, [...extras.filter((item) => item.executionId !== execution.executionId), execution]),
+    auditId,
+    execution.executionId,
+  );
   return {
     state: withActivity(after, {
       auditId,

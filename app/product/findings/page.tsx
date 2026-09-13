@@ -7,49 +7,26 @@ export default function FindingsPage() {
   return (
     <>
       <p className="va-intro">
-        Finding → evidence → analysis → human review → execution / TRACE.
-        These three rows are the computed hero exceptions. They are sample
-        records in this view because this page did not re-verify receipts.
+        Findings that still need a human decision, or that already have one.
+        Catalog rows here are demo data, not a CooL verification result.
       </p>
-      <section className="va-section">
-        <h2>Hero findings</h2>
-        <table className="va-table">
-          <thead>
-            <tr>
-              <th>Finding</th>
-              <th>Audit</th>
-              <th>Severity</th>
-              <th>Review</th>
-              <th>Evidence</th>
-              <th>Record</th>
-            </tr>
-          </thead>
-          <tbody>
-            {findings.map((finding) => (
-              <tr key={finding.findingId}>
-                <td>
-                    <Link href={`/product/audits/${finding.auditId}/findings/${finding.findingId}`}>
-                      {finding.findingId}
-                    </Link>
-                  <span className="meta">{finding.title}</span>
-                </td>
-                <td>{finding.auditTitle}</td>
-                <td>{finding.severity}</td>
-                <td>{finding.review}</td>
-                <td>{finding.evidence.join(", ")}</td>
-                <td>
-                  <span className="va-badge sample">Sample</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-      <p className="va-note">
-        These three findings are the computed hero exceptions from the
-        financial scenario. They are labelled Sample here because this view
-        did not re-verify CooL receipts.
-      </p>
+      <div className="va-finding-cards">
+        {findings.map((finding) => (
+          <article key={finding.findingId} className="va-finding-card">
+            <header>
+              <Link href={`/product/audits/${finding.auditId}/findings/${finding.findingId}`}>
+                {finding.findingId}
+              </Link>
+              <span className="va-badge review">{finding.severity}</span>
+            </header>
+            <h3>{finding.title}</h3>
+            <p>
+              {finding.auditTitle} · {finding.review} · {finding.controlId}{" "}
+              <span className="va-demo">Demo data</span>
+            </p>
+          </article>
+        ))}
+      </div>
     </>
   );
 }

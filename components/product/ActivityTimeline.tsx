@@ -21,8 +21,8 @@ export function ActivityTimeline({
       <h2>Execution trace</h2>
       <p className="va-empty">
         {sealed
-          ? "These recorded activities belong to a sealed execution. Verification is decided by the server."
-          : "Unsealed execution. These activities have not been cryptographically sealed."}
+          ? "SEALED. These activities belong to a CooL-sealed execution. VERIFIED only after the server confirms it."
+          : "RECORDED. These activities have not been cryptographically sealed."}
       </p>
       {activities.length === 0 ? (
         <p className="va-empty">

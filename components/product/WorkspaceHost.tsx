@@ -4,8 +4,10 @@ import Link from "next/link";
 import { asWorkspaceAudit } from "@/lib/product/localWorkspace";
 import { domainLabel, type WorkspaceAudit } from "@/lib/product/workspace";
 import { ExecutionSwitcher } from "./ExecutionSwitcher";
+import { WorkspaceCommand } from "./WorkspaceCommand";
 import { WorkspaceNav } from "./WorkspaceNav";
 import { WorkspaceStatus } from "./WorkspaceStatus";
+import { useAuditPhase } from "./useAuditPhase";
 import { useWorkspace } from "./WorkspaceProvider";
 
 export function WorkspaceHost({
@@ -18,6 +20,7 @@ export function WorkspaceHost({
   children: React.ReactNode;
 }) {
   const workspace = useWorkspace();
+  const { execution } = useAuditPhase(auditId);
   const local = workspace.localAudit(auditId);
   const audit = catalogAudit ?? (local ? asWorkspaceAudit(local, workspace.state) : null);
 
@@ -44,11 +47,12 @@ export function WorkspaceHost({
           <h2>{audit.title}</h2>
           <p>
             {domainLabel(audit.domain)} · {audit.auditId}
-            {audit.origin === "local" ? " · Local workspace" : ""}
+            {execution ? ` · ${execution.label}` : ""}
           </p>
         </div>
         <WorkspaceStatus auditId={audit.auditId} />
       </header>
+      <WorkspaceCommand auditId={audit.auditId} />
       <WorkspaceNav auditId={audit.auditId} />
       <ExecutionSwitcher auditId={audit.auditId} />
       {children}

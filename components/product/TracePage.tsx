@@ -1,6 +1,5 @@
 "use client";
 
-import { Term } from "./Term";
 import { TraceSwitcher, TraceWorkbench } from "./TraceWorkbench";
 import { useWorkspace } from "./WorkspaceProvider";
 import type { TraceEventRow } from "./TraceEvents";
@@ -34,8 +33,9 @@ export function TracePage({
   return (
     <>
       <p className="va-lede">
-        A <Term name="trace">trace</Term> belongs to one execution. Sealed
-        events stay on the original run. Local activity is unsealed.
+        What exactly happened on this execution. Expand an event for actor, type,
+        time, and related evidence or findings. Recorded is not the same as
+        sealed. Sealed is not the same as verified.
       </p>
       <TraceSwitcher auditId={auditId} selectedExecutionId={selected} />
       <TraceWorkbench

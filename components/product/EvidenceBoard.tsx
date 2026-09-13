@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Term } from "./Term";
 import { EvidenceUpload } from "./EvidenceUpload";
-import { WorkspaceActions } from "./WorkspaceActions";
+import { DemoMark } from "./LifeBadge";
 import { isWritableExecution } from "@/lib/product/localWorkspace";
 import { useWorkspace } from "./WorkspaceProvider";
 import type { WorkspaceArtifact } from "@/lib/product/workspace";
@@ -25,82 +24,42 @@ export function EvidenceBoard({
 
   return (
     <>
-      <p className="va-lede">
-        <Term name="evidence">Evidence</Term> is what AI and reviewers work
-        against. Uploaded files stay on this execution. Catalog files are sample
-        records.
-      </p>
-      <WorkspaceActions auditId={auditId} />
+      <p className="va-lede">Evidence available to AI on this execution. Raw document contents are not written to CooL.</p>
       {current && isWritableExecution(current) ? (
         <EvidenceUpload auditId={auditId} executionId={current.executionId} />
       ) : null}
-      {current ? (
-        <p className="va-empty">
-          Showing evidence for {current.label}. Switch executions to inspect
-          another run.
+      {current && isWritableExecution(current) ? (
+        <p className="va-inline-row">
+          <a href={`/product/audits/${auditId}#ai-assistant`}>Ask AI to review</a>
         </p>
       ) : null}
+      {current ? <p className="va-empty">Showing evidence for {current.label}.</p> : null}
       {!showCatalog && local.length === 0 ? (
-        <p className="va-empty">
-          No evidence uploaded yet. Upload a file or try sample audit data.
-        </p>
+        <p className="va-empty">No evidence uploaded yet. Add a file or try the sample pack.</p>
       ) : (
-        <section className="va-section">
-          <h2>Evidence</h2>
-          <table className="va-table">
-            <thead>
-              <tr>
-                <th>Evidence</th>
-                <th>Type</th>
-                <th>Fingerprint</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {showCatalog &&
-                catalog.map((item) => (
-                  <tr key={item.artifactId}>
-                    <td>
-                      <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>
-                        {item.title}
-                      </Link>
-                      <span className="meta">{item.artifactId}</span>
-                    </td>
-                    <td>{item.kind.replace("_", " ")}</td>
-                    <td>—</td>
-                    <td>
-                      <span className="va-badge sample">Sample</span>
-                    </td>
-                  </tr>
-                ))}
-              {local.map((item) => (
-                <tr key={item.artifactId}>
-                  <td>
-                    <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>
-                      {item.title}
-                    </Link>
-                    <span className="meta">{item.artifactId}</span>
-                  </td>
-                  <td>{item.kind}</td>
-                  <td>{item.fingerprint ? `${item.fingerprint.slice(0, 8)}…` : "—"}</td>
-                  <td>
-                    <span className={item.processingStatus === "failed" ? "va-badge closed" : item.sample ? "va-badge sample" : "va-badge open"}>
-                      {item.processingStatus === "failed"
-                        ? "Failed"
-                        : item.processingStatus === "processing"
-                          ? "Processing"
-                          : item.extraction === "text"
-                            ? "Ready"
-                            : item.extraction === "unavailable"
-                              ? "Fingerprint only"
-                              : "Ready"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+        <div className="va-evidence-cards">
+          {showCatalog
+            ? catalog.map((item) => (
+                <article key={item.artifactId} className="va-evidence-card">
+                  <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>{item.title}</Link>
+                  <p>
+                    {item.kind.replace("_", " ")} · {item.artifactId} <DemoMark />
+                  </p>
+                </article>
+              ))
+            : null}
+          {local.map((item) => (
+            <article key={item.artifactId} className="va-evidence-card">
+              <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>
+                {item.filename ?? item.title}
+              </Link>
+              <p>
+                {item.kind} · {item.source || "Upload"}
+                {item.fingerprint ? ` · ${item.fingerprint.slice(0, 12)}` : ""}
+              </p>
+            </article>
+          ))}
+        </div>
       )}
     </>
   );

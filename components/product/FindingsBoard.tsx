@@ -3,8 +3,7 @@
 import Link from "next/link";
 import type { WorkspaceFinding } from "@/lib/product/workspace";
 import { findingReviewLabel } from "@/lib/product/localWorkspace";
-import { Term } from "./Term";
-import { WorkspaceActions } from "./WorkspaceActions";
+import { DemoMark } from "./LifeBadge";
 import { useWorkspace } from "./WorkspaceProvider";
 
 export function FindingsBoard({
@@ -25,79 +24,52 @@ export function FindingsBoard({
   return (
     <>
       <p className="va-lede">
-        A <Term name="finding">finding</Term> is an exception that still needs a
-        human decision. AI proposals start open and are never auto-approved.
+        A finding is an AI or reviewer exception. AI proposals start open and are never auto-approved.
       </p>
-      <WorkspaceActions auditId={auditId} />
       {current ? (
-        <p className="va-empty">
-          Showing findings for {current.label}. Switch executions to inspect
-          another run.
-        </p>
+        <p className="va-empty">Showing findings for {current.label}.</p>
       ) : null}
       {!showCatalog && local.length === 0 ? (
         <p className="va-empty">No findings recorded for this execution.</p>
       ) : (
-        <section className="va-section">
-          <h2>Findings</h2>
-          <table className="va-table">
-            <thead>
-              <tr>
-                <th>Finding</th>
-                <th>Severity</th>
-                <th>Status</th>
-                <th>Evidence</th>
-                <th>Execution</th>
-              </tr>
-            </thead>
-            <tbody>
-              {showCatalog &&
-                catalog.map((finding) => (
-                <tr key={finding.findingId}>
-                  <td>
+        <div className="va-finding-cards">
+          {showCatalog
+            ? catalog.map((finding) => (
+                <article key={finding.findingId} className="va-finding-card">
+                  <header>
                     <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
                       {finding.findingId}
                     </Link>
-                    <span className="meta">{finding.title}</span>
-                  </td>
-                  <td>{finding.severity}</td>
-                  <td>{finding.review}</td>
-                  <td>{finding.evidence.join(", ")}</td>
-                  <td>
-                    <Link
-                      href={
-                        executions[0]
-                          ? `/product/audits/${auditId}/executions/${executions[0].executionId}`
-                          : `/product/audits/${auditId}/executions`
-                      }
-                    >
-                      Execution 001
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {local.map((finding) => (
-                <tr key={finding.findingId}>
-                  <td>
-                    <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
-                      {finding.findingId}
-                    </Link>
-                    <span className="meta">{finding.title}</span>
-                  </td>
-                  <td>{finding.severity}</td>
-                  <td>{findingReviewLabel(finding.review)}</td>
-                  <td>{finding.evidenceIds.join(", ") || "—"}</td>
-                  <td>
-                    <Link href={`/product/audits/${auditId}/executions/${finding.executionId}`}>
-                      {executions.find((item) => item.executionId === finding.executionId)?.label ??
-                        finding.executionId}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+                    <span className="va-badge review">{finding.severity}</span>
+                  </header>
+                  <h3>{finding.title}</h3>
+                  <p>
+                    {finding.review} · {finding.controlId ?? "Control not recorded"} <DemoMark />
+                  </p>
+                </article>
+              ))
+            : null}
+          {local.map((finding) => (
+            <article key={finding.findingId} className="va-finding-card">
+              <header>
+                <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
+                  {finding.findingId}
+                </Link>
+                <span className={`va-badge ${finding.severity === "high" ? "review" : "muted"}`}>
+                  {finding.severity}
+                </span>
+              </header>
+              <h3>{finding.title}</h3>
+              <p>
+                {finding.origin === "ai" ? "AI proposal" : "User finding"} · {findingReviewLabel(finding.review)}
+                {finding.evidenceIds.length ? ` · ${finding.evidenceIds.length} evidence` : ""}
+              </p>
+              <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
+                {finding.review === "pending" ? "Review finding" : "Open finding"}
+              </Link>
+            </article>
+          ))}
+        </div>
       )}
     </>
   );

@@ -223,10 +223,11 @@
   line-height: 1.3;
 }
 
-.va-badge.sample {
-  color: var(--sample);
-  border-color: #3d4a58;
-  background: #1a222b;
+.va-badge.sample,
+.va-badge.demo {
+  color: var(--faint);
+  border-color: var(--line);
+  background: transparent;
 }
 
 .va-badge.muted {
@@ -1144,8 +1145,207 @@
   color: var(--danger, #9b2c2c);
 }
 
+.va-demo {
+  display: inline;
+  color: var(--faint);
+  font-size: var(--fs-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.va-hero-block {
+  margin: 0 0 var(--space-8);
+  max-width: 40rem;
+}
+
+.va-hero-block h2 {
+  margin: 0 0 var(--space-5);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.va-home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.va-panel-quiet {
+  min-width: 0;
+}
+
+.va-panel-quiet h2,
+.va-copilot-panel h2,
+.va-ledger h2,
+.va-seal h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-section);
+  font-weight: 600;
+}
+
+.va-audit-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-5);
+}
+
+.va-audit-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--surface);
+}
+
+.va-audit-card.is-ready_to_seal,
+.va-audit-card.is-review {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.va-audit-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.va-audit-card header a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.va-audit-card header a:hover {
+  color: var(--accent-strong);
+}
+
+.va-audit-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+}
+
+.va-audit-card .va-btn {
+  align-self: flex-start;
+}
+
+.va-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 0.8fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.va-copilot-panel,
+.va-ledger,
+.va-seal {
+  padding: var(--space-5) 0;
+}
+
+.va-ledger-meta,
+.va-ledger-stats {
+  margin: 0 0 var(--space-4);
+  color: var(--muted);
+  font-size: var(--fs-meta);
+}
+
+.va-ledger-list {
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.va-ledger-list li {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: var(--space-3);
+  padding: 0.4rem 0;
+  color: var(--ink);
+  font-size: var(--fs-table);
+}
+
+.va-ledger-list time {
+  color: var(--faint);
+}
+
+.va-ledger a,
+.va-inline-row a {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
+.va-reopen-join {
+  margin: var(--space-3) 0;
+  color: var(--faint);
+  font-size: var(--fs-meta);
+}
+
+.va-lineage-mini {
+  margin-top: var(--space-5);
+}
+
+.va-lineage-mini p {
+  margin: 0;
+}
+
+.va-lineage-mini span {
+  color: var(--faint);
+  font-size: var(--fs-meta);
+}
+
+.va-crypto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.va-crypto li {
+  color: var(--muted);
+  font-size: var(--fs-meta);
+}
+
+.va-finding-cards,
+.va-evidence-cards {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.va-finding-card,
+.va-evidence-card {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.va-finding-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.va-finding-card h3,
+.va-finding-title {
+  margin: var(--space-2) 0;
+  font-size: var(--fs-section);
+}
+
+.va-command {
+  margin-bottom: var(--space-4);
+}
+
+.va-seal-confirm {
+  margin: var(--space-4) 0;
+}
+
 @media (max-width: 960px) {
-  .va-ai-grid {
+  .va-ai-grid,
+  .va-stage,
+  .va-home-grid {
     grid-template-columns: 1fr;
   }
 }

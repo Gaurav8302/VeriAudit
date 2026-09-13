@@ -10,12 +10,13 @@ import { Term } from "./Term";
 import { useWorkspace } from "./WorkspaceProvider";
 
 const STARTERS = [
-  { label: "Review the uploaded evidence", prompt: "Review the uploaded evidence and summarize what it actually supports." },
+  { label: "Review uploaded evidence", prompt: "Review the uploaded evidence and summarize what it actually supports." },
   { label: "Check this control", prompt: "Which controls are present and which are missing evidence?" },
   { label: "Find exceptions", prompt: "Which transactions or records appear to violate the attached policy?" },
-  { label: "Compare these documents", prompt: "Compare these documents and note material mismatches that need human review." },
   { label: "Explain this finding", prompt: "Explain the most important exception in this evidence and what still needs a human decision." },
-  { label: "Trace why this was flagged", prompt: "Trace why a transaction or record in this evidence would be flagged, using only the attached material." },
+  { label: "Trace why this transaction was flagged", prompt: "Trace why a transaction or record in this evidence would be flagged, using only the attached material." },
+  { label: "Compare evidence", prompt: "Compare these documents and note material mismatches that need human review." },
+  { label: "Summarize the execution", prompt: "Summarize the work already recorded on this execution and what still needs a human decision." },
 ] as const;
 
 function providerLabel(provider: string | null): string | null {
@@ -38,7 +39,7 @@ function actionKind(type: string): string {
   return type.replace(/_/g, " ");
 }
 
-export function AiWorkspace({ auditId }: { auditId: string }) {
+export function AiWorkspace({ auditId, compact = false }: { auditId: string; compact?: boolean }) {
   const workspace = useWorkspace();
   const executionId = workspace.selectedId(auditId);
   const execution = workspace.executions(auditId).find((item) => item.executionId === executionId) ?? null;
@@ -145,29 +146,39 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
 
   return (
     <>
-      <p className="va-lede">
-        The <Term name="assistant">AI audit assistant</Term> performs assigned
-        work. The live <Term name="trace">trace</Term> is the same execution:{" "}
-        {execution.executionId}.{" "}
-        {writable ? "Actions are recorded and unsealed." : execution.status === "closed" ? "Closed." : "Read-only."}
-      </p>
-      <ProductExplainer
-        title="What is the AI doing?"
-        body="The assistant analyzes the evidence you provide, performs audit tasks, and records the important actions it takes so the work can be reviewed later."
-      />
-      {!writable ? (
-        <p className="va-empty">
-          AI work belongs on an active execution. Closed and sealed records stay
-          unchanged.
-        </p>
-      ) : (
+      {compact && writable ? (
         <EvidenceUpload auditId={auditId} executionId={execution.executionId} />
-      )}
-      <div className="va-ai-grid">
-        <section className="va-section">
-          <h2>AI audit assistant</h2>
+      ) : null}
+      {!compact ? (
+        <>
+          <p className="va-lede">
+            The <Term name="assistant">AI audit assistant</Term> performs assigned
+            work. The live <Term name="trace">trace</Term> is the same execution:{" "}
+            {execution.executionId}.{" "}
+            {writable ? "Actions are recorded and unsealed." : execution.status === "closed" ? "Closed." : "Read-only."}
+          </p>
+          <ProductExplainer
+            title="What is the AI doing?"
+            body="The assistant analyzes the evidence you provide, performs audit tasks, and records the important actions it takes so the work can be reviewed later."
+          />
+          {!writable ? (
+            <p className="va-empty">
+              AI work belongs on an active execution. Closed and sealed records stay
+              unchanged.
+            </p>
+          ) : (
+            <EvidenceUpload auditId={auditId} executionId={execution.executionId} />
+          )}
+        </>
+      ) : null}
+      <div className={compact ? "va-copilot" : "va-ai-grid"}>
+        <section className={compact ? "va-copilot-panel" : "va-section"} id="ai-assistant">
+          <p className="va-kicker">AI audit assistant</p>
+          <h2>What should we investigate?</h2>
           <p className="va-empty">
-            AI assists. Humans review. VeriAudit records the execution.
+            Context: {execution.label}
+            {evidence.length ? ` · ${evidence.length} evidence` : " · no evidence yet"}
+            {findings.length ? ` · ${findings.length} findings` : ""}.
           </p>
           {messages.length === 0 ? (
             <p className="va-empty">
@@ -251,13 +262,13 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
           ) : null}
           <div className="va-form">
             <label>
-              What would you like me to check?
+              Ask VeriAudit
               <textarea
                 value={prompt}
-                rows={4}
+                rows={compact ? 3 : 4}
                 disabled={!writable || busy}
                 onChange={(event) => setPrompt(event.target.value)}
-                placeholder="Ask the assistant to review evidence, check a control, or find exceptions."
+                placeholder="Ask VeriAudit..."
               />
             </label>
           </div>
@@ -267,8 +278,14 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
             </button>
           </div>
           {error ? <p className="va-empty">{error}</p> : null}
+          {compact && running ? (
+            <p className="va-ai-progress">
+              <strong>Analyzing evidence</strong>
+              <span>→ {running}</span>
+            </p>
+          ) : null}
         </section>
-        <section className="va-section">
+        {compact ? null : <section className="va-section">
           <h2>Live execution trace</h2>
           <p className="va-empty">
             {execution.executionId}. What the assistant just did is recorded here.
@@ -360,7 +377,7 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
               ))}
             </ol>
           )}
-        </section>
+        </section>}
       </div>
     </>
   );

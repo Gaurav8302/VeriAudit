@@ -9,7 +9,7 @@ export function ExecutionSwitcher({ auditId }: { auditId: string }) {
   const workspace = useWorkspace();
   const executions = workspace.executions(auditId);
   const selected = workspace.selectedId(auditId);
-  if (executions.length === 0) return null;
+  if (executions.length < 2) return null;
 
   return (
     <nav className="va-switcher" aria-label="Executions">

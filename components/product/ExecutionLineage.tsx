@@ -38,7 +38,7 @@ export function ExecutionLineage({
             {index > 0 && parent && (
               <p className="va-exec-join">
                 <span aria-hidden="true">│</span>
-                <span>reopened on {formatDay(execution.createdAt)}</span>
+                <span>↓ Reopened · {formatDay(execution.createdAt)}</span>
                 <span aria-hidden="true">▼</span>
               </p>
             )}

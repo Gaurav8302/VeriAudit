@@ -8,16 +8,14 @@ import "./app.css";
 
 const PRIMARY = [
   { href: "/product", label: "Overview", exact: true },
+  { href: "/product/audits", label: "Audits" },
   { href: "/product/audits/new", label: "Create Audit", exact: true },
 ] as const;
 
-const AUDIT_NAV = [{ href: "/product/audits", label: "Audits" }] as const;
-
 const INVESTIGATION = [
-  { href: "/product/executions", label: "Executions" },
   { href: "/product/evidence", label: "Evidence" },
   { href: "/product/findings", label: "Findings" },
-  { href: "/product/traces", label: "Trace" },
+  { href: "/product/executions", label: "Activity" },
 ] as const;
 
 function active(pathname: string, href: string, exact = false) {
@@ -36,21 +34,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="va-side" aria-label="Product">
         <BrandMark href="/product" variant="compact" />
         <nav className="va-nav">
+          <p className="va-group">Primary</p>
           {PRIMARY.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={active(pathname, item.href, item.exact) ? "va-link is-active" : "va-link"}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <p className="va-group">Audit workspace</p>
-          {AUDIT_NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={active(pathname, item.href) ? "va-link is-active" : "va-link"}
+              className={active(pathname, item.href, "exact" in item && item.exact) ? "va-link is-active" : "va-link"}
             >
               {item.label}
             </Link>
@@ -93,7 +82,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link href="/" className="va-back">
               ← Back to VeriAudit
             </Link>
-            <Link href="/product/data">Sample data</Link>
             <Link href="/#faq">Help</Link>
             <Link href="/demo">Replay demo</Link>
           </nav>

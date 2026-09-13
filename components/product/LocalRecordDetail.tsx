@@ -148,12 +148,13 @@ export function LocalFindingDetail({
       <p className="va-crumb">
         <Link href={`/product/audits/${auditId}/findings`}>← Findings</Link>
       </p>
-      <p className="va-wip">
-        {finding.origin === "ai" ? `AI proposal · ${findingReviewLabel(finding.review)} · unsealed` : "User finding · unsealed"}
+      <p className="va-kicker">
+        {finding.origin === "ai" ? "AI proposal" : "User finding"} · {finding.severity} · {findingReviewLabel(finding.review)}
       </p>
-      <p className="va-lede">
-        {finding.findingId} — {finding.title}
-      </p>
+      <h2 className="va-finding-title">
+        {finding.findingId}
+      </h2>
+      <p className="va-lede">{finding.title}</p>
       {finding.origin === "ai" ? (
         <p className="va-empty">
           AI observation → finding → human review. Current state:{" "}
@@ -202,11 +203,11 @@ export function LocalFindingDetail({
         </div>
       </dl>
       <section className="va-section">
-        <h2>Description</h2>
-        <p className="va-empty">{finding.description || "No description yet."}</p>
+        <h2>AI analysis</h2>
+        <p className="va-empty">{finding.description || "No analysis recorded."}</p>
       </section>
       <section className="va-section">
-        <h2>Related evidence</h2>
+        <h2>Supporting evidence</h2>
         {related.length === 0 ? (
           <p className="va-empty">No related evidence attached.</p>
         ) : (
@@ -268,7 +269,7 @@ export function LocalFindingDetail({
                 }
               }}
             >
-              {review === "accepted" ? "Accept" : review === "modified" ? "Modify" : "Reject"}
+              {review === "accepted" ? "Accept" : review === "modified" ? "Modify" : "Dismiss"}
             </button>
           ))}
         </div>
