@@ -26,4 +26,10 @@ describe("public landing copy", () => {
     expect(PRODUCT_SHORTCUT.href).toBe("/product");
     expect(PRODUCT_SHORTCUT.note).toMatch(/work in progress/i);
   });
+
+  it("explains verification without claiming the AI was correct", () => {
+    const verify = FAQS.find((item) => item.q === "What does verification mean?");
+    expect(verify?.a).toMatch(/cryptographic evidence/i);
+    expect(verify?.a).toMatch(/does not prove the AI was correct/i);
+  });
 });

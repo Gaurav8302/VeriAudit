@@ -1,0 +1,33 @@
+.brand-mark-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+  background: transparent;
+  mix-blend-mode: screen;
+}
+
+.brand-mark-hero {
+  width: auto;
+  height: 4.75rem;
+  max-width: min(24rem, 100%);
+}
+
+.brand-mark-nav {
+  height: 2.1rem;
+  width: auto;
+}
+
+.brand-mark-compact {
+  height: 1.9rem;
+  width: auto;
+  max-width: none;
+}

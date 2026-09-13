@@ -210,8 +210,12 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
         <section className="va-section">
           <h2>Live trace</h2>
           <p className="va-empty">
-            {execution.executionId}. These actions are not cryptographically
-            sealed.
+            {execution.executionId}
+            {writable
+              ? ". Live actions on this execution are not sealed until the execution is closed and sealed."
+              : execution.status === "sealed" || execution.status === "closed"
+                ? ". This execution is closed. New AI work belongs on a later execution."
+                : ". These actions are not cryptographically sealed."}
           </p>
           {running ? <p className="va-empty">● {running} · RUNNING</p> : null}
           {workspace

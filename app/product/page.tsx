@@ -17,11 +17,26 @@ export default function OverviewPage() {
 
   return (
     <>
+      <p className="va-wip">Work in progress</p>
       <p className="va-intro">
-        Sample catalog records from the existing audit corpus. Nothing here is
-        cryptographically verified unless you complete the guided demo and hold
-        a receipt.
+        This preview demonstrates the product direction. Sample audits are
+        included so you can explore the workflow. Nothing here is
+        cryptographically verified unless a product execution has been sealed
+        and the server has confirmed it, or you complete the guided demo and
+        hold a receipt.
       </p>
+
+      <div className="va-actions">
+        <Link href="/product/audits/new" className="va-btn va-btn-primary">
+          Create Audit
+        </Link>
+        <Link href="/product/audits" className="va-btn">
+          Inspect Audits
+        </Link>
+        <Link href="/product/data" className="va-btn">
+          Download sample data
+        </Link>
+      </div>
 
       <div className="va-grid">
         <section className="va-panel">

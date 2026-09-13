@@ -132,7 +132,11 @@
   grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
   gap: 5rem;
   align-items: start;
-  padding: 6.5rem 0 7rem;
+  padding: 4.25rem 0 5.5rem;
+}
+
+.site-hero-copy .brand-mark-hero {
+  margin-bottom: 1.15rem;
 }
 
 .site-kicker {
@@ -293,12 +297,17 @@
   list-style: none;
 }
 
+.site-cases article {
+  padding: 1.35rem 1.4rem 1.5rem;
+  border: 1px solid var(--line);
+  background: var(--bg-inset);
+}
+
 .site-steps {
   grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
 }
 
 .site-steps li,
-.site-cases article,
 .site-preview,
 .product-entry-grid article {
   margin: 0;

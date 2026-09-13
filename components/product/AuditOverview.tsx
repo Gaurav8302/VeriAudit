@@ -120,11 +120,7 @@ export function AuditOverview({
       <div className="va-rail-grid">
         <section className="va-section">
           <h2>Evidence on this execution</h2>
-          {localEvidence.length === 0 ? (
-            <p className="va-empty">
-              No evidence uploaded yet. This is the evidence AI works against.
-            </p>
-          ) : (
+          {localEvidence.length > 0 ? (
             <ul className="va-list">
               {localEvidence.map((item) => (
                 <li key={item.artifactId}>
@@ -143,6 +139,21 @@ export function AuditOverview({
                 </li>
               ))}
             </ul>
+          ) : current?.sequence === 1 && catalog?.evidence.length ? (
+            <ul className="va-list">
+              {catalog.evidence.map((item) => (
+                <li key={item.artifactId}>
+                  <Link href={`/product/audits/${auditId}/evidence/${item.artifactId}`}>
+                    <strong>{item.title}</strong>
+                  </Link>
+                  <span>{item.kind} · Sample</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="va-empty">
+              No evidence uploaded yet. This is the evidence AI works against.
+            </p>
           )}
         </section>
         <section className="va-section">

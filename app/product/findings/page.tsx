@@ -7,8 +7,9 @@ export default function FindingsPage() {
   return (
     <>
       <p className="va-intro">
-        The future path is Finding → Evidence → Analysis → Review → Execution /
-        Trace. Live AI reasoning is not connected in this product phase.
+        Finding → evidence → analysis → human review → execution / TRACE.
+        These three rows are the computed hero exceptions. They are sample
+        records in this view because this page did not re-verify receipts.
       </p>
       <section className="va-section">
         <h2>Hero findings</h2>

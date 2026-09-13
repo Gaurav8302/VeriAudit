@@ -7,8 +7,8 @@ export interface PageMeta {
 const PAGES: Record<string, PageMeta> = {
   "/product": {
     chrome: "Overview",
-    title: "Overview",
-    lede: "What is happening in this audit workspace.",
+    title: "Your audit workspace",
+    lede: "Create an audit, inspect sample work, or continue a local execution.",
   },
   "/product/audits": {
     chrome: "Audits",

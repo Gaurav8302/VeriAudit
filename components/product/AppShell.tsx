@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { isAuditWorkspace, pageMeta } from "@/lib/product/pageMeta";
 import "./app.css";
 
@@ -16,7 +17,7 @@ const INVESTIGATION = [
   { href: "/product/executions", label: "Executions" },
   { href: "/product/evidence", label: "Evidence" },
   { href: "/product/findings", label: "Findings" },
-  { href: "/product/traces", label: "Traces" },
+  { href: "/product/traces", label: "Trace" },
 ] as const;
 
 function active(pathname: string, href: string, exact = false) {
@@ -33,9 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="va">
       <aside className="va-side" aria-label="Product">
-        <Link href="/product" className="va-brand">
-          VeriAudit
-        </Link>
+        <BrandMark href="/product" variant="compact" />
         <nav className="va-nav">
           {PRIMARY.map((item) => (
             <Link

@@ -170,9 +170,18 @@ export function ExecutionTrust({
         {failed ? " · Verification failed" : null}
       </p>
       {verified ? (
-        <p className="va-empty">{verification.claim}</p>
+        <>
+          <p className="va-trust-status">VERIFIED</p>
+          <p className="va-empty">
+            The recorded execution matches its cryptographic evidence.
+          </p>
+          <p className="va-empty">{verification.claim}</p>
+        </>
       ) : failed ? (
-        <p className="va-empty">{verification.claim}</p>
+        <>
+          <p className="va-trust-status is-fail">FAILED</p>
+          <p className="va-empty">{verification.claim}</p>
+        </>
       ) : seal ? (
         <p className="va-empty">
           Receipts are stored with this workspace. Verification is decided by
@@ -228,7 +237,11 @@ export function ExecutionTrust({
 
       {open && verification ? (
         <div className="va-trust-panel">
-          <h3>Verification</h3>
+          <h3>{verified ? "Cryptographically verified" : failed ? "Verification failed" : "Verification"}</h3>
+          <p className="va-empty">
+            CooL produced the cryptographic evidence. These checks confirm the
+            recorded execution still matches that evidence.
+          </p>
           <ul className="va-trust-list">
             <CheckRow ok={verification.checks.receiptAuthenticity} label="Receipt authenticity" />
             <CheckRow ok={verification.checks.trustedIdentity} label="Trusted VeriAudit identity" />

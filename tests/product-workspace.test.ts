@@ -12,7 +12,7 @@ import {
 describe("product entry", () => {
   it("sends the landing shortcut and the demo handoff to the same product", () => {
     expect(PRODUCT_SHORTCUT.href).toBe("/product");
-    expect(PRODUCT_SHORTCUT.label).toMatch(/explore product/i);
+    expect(PRODUCT_SHORTCUT.label).toMatch(/explore the product/i);
   });
 });
 

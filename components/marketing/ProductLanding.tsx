@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { FAQS } from "./copy";
 import { PRODUCT_SHORTCUT } from "./product-shortcut";
 import "./marketing.css";
@@ -49,32 +50,47 @@ const PIPELINE = [
 
 const HOW = [
   {
-    title: "Data",
-    copy: "Documents and structured records enter the audit workspace.",
+    title: "Upload evidence",
+    copy: "Ledgers, policies, and supporting files enter the audit workspace.",
   },
   {
-    title: "AI analysis",
-    copy: "AI analyzes the available evidence — not a story invented after the fact.",
+    title: "Work with AI",
+    copy: "Ask questions against retrieved evidence, not a story invented after the fact.",
   },
   {
-    title: "Evidence",
-    copy: "Relevant source material is attached to the reasoning.",
+    title: "Review decisions",
+    copy: "A person accepts, modifies, or rejects what the model suggested.",
   },
   {
-    title: "Finding",
-    copy: "Potential exceptions are surfaced with a control and a reason.",
+    title: "Verify the execution",
+    copy: "When work is closed, CooL can seal the recorded history so it can be checked later.",
+  },
+] as const;
+
+const CAPABILITIES = [
+  {
+    title: "AI-assisted audit work",
+    copy: "Ask VeriAudit about the evidence attached to one execution. Chat explains the work. The trail records it.",
+  },
+  {
+    title: "Evidence management",
+    copy: "Uploads and sample packs stay bound to an execution by ID and fingerprint.",
+  },
+  {
+    title: "Real-time execution trace",
+    copy: "Started work, retrieved evidence, findings, and reviews appear as an inspectable sequence.",
   },
   {
     title: "Human review",
-    copy: "A person reviews and accepts, modifies, or rejects the result.",
+    copy: "The AI is never treated as the reviewer. Accept, modify, or reject stays a human act.",
   },
   {
-    title: "Execution trail",
-    copy: "The important actions and decisions are preserved as one execution.",
+    title: "Cryptographic verification",
+    copy: "A sealed execution can be checked against CooL receipts. Verified means the record matches its evidence.",
   },
   {
-    title: "Verification",
-    copy: "CooL provides cryptographic evidence for sealed executions.",
+    title: "Execution lineage",
+    copy: "Reopening creates a later execution. The earlier sealed run is not rewritten.",
   },
 ] as const;
 
@@ -125,9 +141,7 @@ export function ProductLanding() {
     <div className="site">
       <header className="site-nav">
         <div className="site-nav-inner">
-          <a href="#top" className="site-mark">
-            VeriAudit
-          </a>
+          <BrandMark href="#top" variant="nav" />
           <nav className="site-links" aria-label="Page">
             {NAV.map((item) => (
               <a key={item.href} href={item.href}>
@@ -137,7 +151,7 @@ export function ProductLanding() {
           </nav>
           <div className="site-nav-end">
             <Link href="/demo" className="site-cta">
-              Start demo
+              Start the Demo
             </Link>
             {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
             <Link href={PRODUCT_SHORTCUT.href} className="site-text">
@@ -163,7 +177,7 @@ export function ProductLanding() {
               </a>
             ))}
             <Link href="/demo" className="site-cta" onClick={() => setMenuOpen(false)}>
-              Start demo
+              Start the Demo
             </Link>
             {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
             <Link href={PRODUCT_SHORTCUT.href} className="site-text" onClick={() => setMenuOpen(false)}>
@@ -177,25 +191,23 @@ export function ProductLanding() {
       <main id="top">
         <section className="site-hero" aria-labelledby="hero-title">
           <div className="site-hero-copy">
-            <p className="site-kicker">VeriAudit</p>
+            <BrandMark variant="hero" />
+            <p className="site-kicker">Trust every audit.</p>
             <h1 id="hero-title" className="site-display">
-              AI-assisted audit work,
-              <br />
-              with a record you can verify.
+              AI-powered audits with an execution trail you can verify.
             </h1>
             <p className="site-lead">
-              VeriAudit helps teams use AI for audit analysis while preserving the
-              evidence, decisions, and execution history behind every important
-              result.
+              VeriAudit helps audit teams work with AI while preserving the
+              evidence, decisions, and execution history behind every result.
             </p>
             <p className="site-sublead">
-              AI can analyse. Audit work still needs context, attached evidence,
+              AI can produce an answer. Audit work still needs attached evidence,
               a reconstructable trail, and a way to check that the recorded
               history was not silently changed.
             </p>
             <div className="site-actions">
               <Link href="/demo" className="site-cta site-cta-lg">
-                Start interactive demo
+                Start the Demo
               </Link>
               {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
               <Link href={PRODUCT_SHORTCUT.href} className="site-text">
@@ -259,10 +271,10 @@ export function ProductLanding() {
         <section id="how" className="site-section">
           <div className="site-wrap">
             <p className="site-kicker">How it works</p>
-            <h2 className="site-h2">From data to a sealed execution.</h2>
+            <h2 className="site-h2">From evidence to a verified execution.</h2>
             <p className="site-intro">
-              This is the pipeline the demo walks through, and the product is
-              being built around. It is a record of work — not a scoreboard.
+              Four steps. The demo walks this path. The product workspace uses
+              the same record of work — not a scoreboard.
             </p>
             <ol className="site-steps">
               {HOW.map((item, index) => (
@@ -298,14 +310,32 @@ export function ProductLanding() {
         </section>
 
         <section id="product" className="site-section">
+          <div className="site-wrap">
+            <p className="site-kicker">Product capabilities</p>
+            <h2 className="site-h2">What the workspace is built to hold.</h2>
+            <p className="site-intro">
+              These are the working parts of the product preview. They are not a
+              claim that a finished enterprise suite exists today.
+            </p>
+            <div className="site-cases">
+              {CAPABILITIES.map((item) => (
+                <article key={item.title}>
+                  <h3>{item.title}</h3>
+                  <p>{item.copy}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="site-band">
           <div className="site-wrap site-split">
             <div>
               <p className="site-kicker">The differentiator</p>
               <h2 className="site-h2">AI answers are not enough.</h2>
               <p className="site-intro">
-                VeriAudit focuses on the execution behind the answer. TRACE is
-                not a marketing label. It is the path a later question should be
-                able to follow.
+                VeriAudit focuses on the execution behind the answer. A TRACE is
+                the path a later question should be able to follow.
               </p>
             </div>
             <ol className="site-trace">
@@ -375,13 +405,16 @@ export function ProductLanding() {
             <p className="site-kicker">Product preview</p>
             <h2 className="site-h2">From guided demo to real audit workspace.</h2>
             <p className="site-intro">
-              The demo shows the idea. The product we are building turns that
-              idea into a workspace where teams can create audits, inspect
-              evidence, work with AI, review findings, and TRACE how important
-              decisions were produced.
+              The demo teaches the idea. The product preview is the workspace
+              being built around it: create audits, inspect evidence, work with
+              AI, review findings, and check a sealed execution.
             </p>
             <div className="site-preview">
               <p className="site-wip">Work in progress</p>
+              <p>
+                This preview demonstrates the product direction. Sample audit
+                data is included so you can explore the workflow.
+              </p>
               <ul>
                 <li>Create and reopen audits</li>
                 <li>Documents, evidence, findings, executions</li>
@@ -390,9 +423,9 @@ export function ProductLanding() {
                 <li>CooL sealing for real, non-sample work</li>
               </ul>
               <p>
-                These capabilities are not finished. The public product route is
-                a shell so the judging path stays honest: demo first, then the
-                workspace we are actually building.
+                The intended path is demo first, then the workspace. You can
+                also open the product directly. Either way, this is an early
+                build — not a finished enterprise suite.
               </p>
             </div>
           </div>
@@ -404,12 +437,12 @@ export function ProductLanding() {
             <h2 className="site-h2">You&apos;ve seen the story. Now explore the product we&apos;re building.</h2>
             <p className="site-intro">
               The intended path is the interactive demo. That is the narrative.
-              The product route is labelled work in progress and is not a
-              shortcut past the proof.
+              Explore the Product opens the work-in-progress workspace directly,
+              so you can inspect the application without repeating the walkthrough.
             </p>
             <div className="site-actions">
               <Link href="/demo" className="site-cta site-cta-lg">
-                Start interactive demo
+                Start the Demo
               </Link>
               {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
               <Link href={PRODUCT_SHORTCUT.href} className="site-text">
@@ -444,7 +477,7 @@ export function ProductLanding() {
             </h2>
             <div className="site-actions">
               <Link href="/demo" className="site-cta site-cta-lg">
-                Start the demo
+                Start the Demo
               </Link>
               {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
               <Link href={PRODUCT_SHORTCUT.href} className="site-text">
@@ -458,8 +491,8 @@ export function ProductLanding() {
 
       <footer className="site-foot">
         <div className="site-wrap site-foot-inner">
-          <p className="site-mark">VeriAudit</p>
-          <p>Early product. The demo is the proof. The workspace is under construction.</p>
+          <BrandMark variant="compact" href="#top" />
+          <p>Work in progress. The demo is the proof. The workspace shows the product direction.</p>
         </div>
       </footer>
     </div>

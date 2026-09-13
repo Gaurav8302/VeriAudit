@@ -7,29 +7,31 @@
   --space-6: 1.5rem;
   --space-8: 2rem;
 
-  --app: #06080b;
-  --side: #090c10;
-  --main: #0f1419;
-  --surface: #1c232c;
-  --surface-2: #252d37;
-  --hover: #2b3440;
-  --selected: #313b48;
-  --ink: #eef1f4;
-  --muted: #b7bfc8;
-  --faint: #8e97a1;
-  --line: #323b46;
-  --line-strong: #45515e;
-  --accent: #8aa0c4;
-  --accent-strong: #b4c4dc;
+  --app: #0c0b09;
+  --side: #100f0c;
+  --main: #16140f;
+  --surface: #1c1a14;
+  --surface-2: #242018;
+  --hover: #2c271c;
+  --selected: #352f22;
+  --ink: #ece8dc;
+  --muted: #b7b09c;
+  --faint: #8d8778;
+  --line: #2e2c24;
+  --line-strong: #4a4638;
+  --accent: #c4a35a;
+  --gold: #c4a35a;
+  --accent-strong: #d4c4a0;
+  --elevated: #2a261c;
   --wip: #c4b08a;
-  --sample: #9aabc0;
+  --sample: #b7b09c;
   --danger: #c47870;
 
-  --fs-page: 1.5rem;
-  --fs-section: 1.0625rem;
-  --fs-body: 0.9375rem;
-  --fs-table: 0.875rem;
-  --fs-meta: 0.8125rem;
+  --fs-page: 1.75rem;
+  --fs-section: 1.2rem;
+  --fs-body: 1rem;
+  --fs-table: 0.9375rem;
+  --fs-meta: 0.875rem;
   --fs-label: 0.75rem;
 
   min-height: 100vh;
@@ -54,14 +56,8 @@
   align-self: start;
 }
 
-.va-brand {
-  display: block;
+.va-side .brand-mark-link {
   padding: 0 var(--space-5) var(--space-5);
-  color: var(--ink);
-  text-decoration: none;
-  font-size: var(--fs-table);
-  font-weight: 600;
-  letter-spacing: 0.06em;
 }
 
 .va-nav {
@@ -162,6 +158,7 @@
 
 .va-body {
   padding: var(--space-6) var(--space-6) 3rem;
+  max-width: 86rem;
 }
 
 .va-page {
@@ -239,9 +236,9 @@
 }
 
 .va-badge.sealed {
-  color: var(--sample);
-  border-color: #3d4a58;
-  background: #1a222b;
+  color: var(--accent-strong);
+  border-color: #5a4a28;
+  background: #221c12;
 }
 
 .va-badge.open,
@@ -386,7 +383,7 @@
 .va-btn {
   display: inline-flex;
   align-items: center;
-  padding: 0.45rem 0.8rem;
+  padding: 0.55rem 0.95rem;
   border: 1px solid var(--line-strong);
   color: var(--ink);
   text-decoration: none;
@@ -1019,11 +1016,23 @@
   color: var(--accent-strong);
 }
 
+.va-trust-status {
+  margin: 0 var(--space-4) 0.35rem;
+  color: var(--gold, #c9a46a);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.va-trust-status.is-fail {
+  color: var(--danger, #c45c5c);
+}
+
 .va-trust-panel {
   margin: 0 var(--space-4) var(--space-4);
   padding: var(--space-4);
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 1px solid var(--line-strong, var(--line));
+  background: var(--elevated, var(--surface));
 }
 
 .va-trust-panel h3 {

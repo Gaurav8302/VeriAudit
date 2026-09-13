@@ -21,7 +21,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <dt>AI providers</dt>
-            <dd>Not connected</dd>
+            <dd>Server-side gateway. Keys stay on the server.</dd>
           </div>
         </dl>
       </section>
@@ -30,15 +30,18 @@ export default function SettingsPage() {
         <ul className="va-list">
           <li>
             <strong>CooL</strong>
-            <span>Used by the guided demo to seal and verify executions. Not claimed here without receipts.</span>
+            <span>
+              Used by the guided demo and by closed product executions. The
+              browser does not decide verified.
+            </span>
           </li>
           <li>
             <strong>AI gateway</strong>
-            <span>Will be connected in a later product phase when credentials are supplied.</span>
+            <span>Connected for workspace analysis when credentials are present.</span>
           </li>
           <li>
             <strong>Document ingestion</strong>
-            <span>Being implemented. Uploads are not processed in this iteration.</span>
+            <span>Text, CSV, and JSON extract in the product workspace. XLSX remains fingerprint-only.</span>
           </li>
         </ul>
       </section>

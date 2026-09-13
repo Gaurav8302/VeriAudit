@@ -7,6 +7,6 @@
  */
 export const PRODUCT_SHORTCUT = {
   href: "/product",
-  label: "Explore product",
+  label: "Explore the Product",
   note: "Work in progress",
 } as const;

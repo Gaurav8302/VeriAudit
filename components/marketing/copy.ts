@@ -21,7 +21,11 @@ export const FAQS = [
   },
   {
     q: "Does VeriAudit replace auditors?",
-    a: "No. The product is built around human review. AI can surface exceptions. A person still accepts, modifies, or rejects them. The record is there so that review can be reconstructed.",
+    a: "No. VeriAudit assists auditors and records the execution context so humans remain responsible for review and decisions. AI can surface exceptions. A person still accepts, modifies, or rejects them.",
+  },
+  {
+    q: "What does verification mean?",
+    a: "Verification checks that the recorded execution matches its cryptographic evidence. It does not prove the AI was correct, and it does not mean the financial number itself is true.",
   },
   {
     q: "Can an audit be reopened?",

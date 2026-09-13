@@ -12,14 +12,17 @@ export function ActivityTimeline({
   executionId: string;
   label: string;
 }) {
-  const activities = useWorkspace().activities(auditId, executionId);
+  const workspace = useWorkspace();
+  const activities = workspace.activities(auditId, executionId);
+  const sealed = Boolean(workspace.sealFor(executionId));
 
   return (
     <section className="va-section">
-      <h2>Product activity</h2>
+      <h2>Execution trace</h2>
       <p className="va-empty">
-        Unsealed execution. These activities have not been cryptographically
-        sealed. This is a WIP workspace.
+        {sealed
+          ? "These recorded activities belong to a sealed execution. Verification is decided by the server."
+          : "Unsealed execution. These activities have not been cryptographically sealed."}
       </p>
       {activities.length === 0 ? (
         <p className="va-empty">
@@ -37,7 +40,9 @@ export function ActivityTimeline({
                   {formatClock(item.occurredAt)} · {item.title}
                 </strong>
                 <span className="meta">
-                  {formatDay(item.occurredAt)} · {item.detail} · {item.actor} · Unsealed
+                  {item.type} · {item.actor} · {formatDay(item.occurredAt)}
+                  {item.subjectId ? ` · ${item.subjectId}` : ""}
+                  {sealed ? " · Sealed" : " · Unsealed"}
                 </span>
               </div>
             </li>

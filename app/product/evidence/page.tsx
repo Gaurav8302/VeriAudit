@@ -43,8 +43,8 @@ export default function EvidencePage() {
         </table>
       </section>
       <p className="va-note">
-        Download the authored plaintext from Test data. Document ingestion for
-        new uploads is being implemented later.
+        Download authored plaintext from Sample data. New uploads belong on an
+        open execution in an audit workspace.
       </p>
     </>
   );
