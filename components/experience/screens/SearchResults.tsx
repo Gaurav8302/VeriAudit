@@ -10,6 +10,7 @@ export function SearchResults({
   results,
   loading,
   error,
+  chips = SUGGESTION_CHIPS,
   onSearch,
   onOpen,
   onRetry,
@@ -18,6 +19,7 @@ export function SearchResults({
   results: SearchResponse | null;
   loading: boolean;
   error: string | null;
+  chips?: readonly string[];
   onSearch: (query: string) => void;
   onOpen: (auditId: string, executionId: string) => void;
   onRetry: () => void;
@@ -56,7 +58,7 @@ export function SearchResults({
         </form>
 
         <div className="chips">
-          {SUGGESTION_CHIPS.map((chip) => (
+          {chips.map((chip) => (
             <button
               key={chip}
               type="button"

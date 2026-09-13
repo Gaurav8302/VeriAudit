@@ -309,18 +309,39 @@ a:focus-visible {
   font-size: 1.08rem;
 }
 
+.scenario-one {
+  margin: 0.28rem 0 0;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  max-width: 38rem;
+}
+
 .scenario-meta {
   margin: 0.28rem 0 0;
   color: var(--muted);
   font-size: 0.88rem;
 }
 
-.hero-tag {
+.hero-tag,
+.avail-tag {
   font-size: 0.68rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--brass);
   align-self: center;
+  white-space: nowrap;
+}
+
+.hero-tag {
+  color: var(--brass);
+}
+
+.avail-tag {
+  color: var(--muted);
+}
+
+.scenario.selected .avail-tag {
+  color: var(--brass);
 }
 
 .chosen {
@@ -503,6 +524,10 @@ a:focus-visible {
   gap: 1rem;
   padding: 0.72rem 0;
   border-bottom: 1px solid var(--line);
+}
+
+.activity.is-origin strong {
+  color: var(--brass);
 }
 
 .activity time {

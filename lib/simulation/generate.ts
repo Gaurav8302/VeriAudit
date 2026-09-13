@@ -47,15 +47,34 @@ const WINDOWS: readonly { minDay: number; maxDay: number; count: number }[] = [
 
 const ENGINE = { name: "veriaudit-reasoner", version: "0.1.0" } as const;
 
+function engineEventCount(scenario: {
+  artifacts: readonly unknown[];
+  controls: readonly unknown[];
+  expected: { findings: number };
+  reviewPolicy: { decisions: Readonly<Record<string, unknown>> };
+}): number {
+  const reviews = Object.keys(scenario.reviewPolicy.decisions).length;
+  return (
+    1 +
+    scenario.artifacts.length * 2 +
+    2 +
+    scenario.controls.length +
+    scenario.expected.findings +
+    reviews +
+    1
+  );
+}
+
 function heroEventIds(): string[] {
-  return Array.from({ length: 30 }, (_, i) => eventId(financialScenario, i));
+  return Array.from({ length: engineEventCount(financialScenario) }, (_, i) =>
+    eventId(financialScenario, i),
+  );
 }
 
 function realEventIds(
-  scenario: { eventCode: string },
-  count: number,
+  scenario: { eventCode: string } & Parameters<typeof engineEventCount>[0],
 ): string[] {
-  return Array.from({ length: count }, (_, i) => eventId(scenario, i));
+  return Array.from({ length: engineEventCount(scenario) }, (_, i) => eventId(scenario, i));
 }
 
 function executions(): SimulatedExecution[] {
@@ -71,13 +90,13 @@ function executions(): SimulatedExecution[] {
       eventIds = heroEventIds();
       rootEventId = eventIds[0] ?? null;
     } else if (isLegal) {
-      eventIds = realEventIds(legalScenario, 22);
+      eventIds = realEventIds(legalScenario);
       rootEventId = eventIds[0] ?? null;
     } else if (isCyber) {
-      eventIds = realEventIds(cyberScenario, 25);
+      eventIds = realEventIds(cyberScenario);
       rootEventId = eventIds[0] ?? null;
     } else if (isProc) {
-      eventIds = realEventIds(procurementScenario, 23);
+      eventIds = realEventIds(procurementScenario);
       rootEventId = eventIds[0] ?? null;
     }
 

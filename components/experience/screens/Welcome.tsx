@@ -8,8 +8,10 @@ export function Welcome({ onBegin }: { onBegin: () => void }) {
         <h1 className="display">One audit. Then time. Then the question.</h1>
         <p className="lede">{APPROVED_CLAIMS.welcome}</p>
         <p className="lede lede-follow">
-          You will run a financial audit, let three months of work bury it, and
-          recover the original execution when someone asks why.
+          You will run one of four live audits, let three months of work bury
+          it, and recover the original execution when someone asks why.
+          Financial is the recommended reference path. The others are complete
+          audits, not placeholders.
         </p>
         <button type="button" className="primary" onClick={onBegin}>
           Begin an audit

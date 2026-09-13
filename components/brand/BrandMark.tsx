@@ -1,7 +1,7 @@
 import Link from "next/link";
 import "./brand.css";
 
-const SRC = "/brand/veriaudit-logo.png";
+const SRC = "/brand/veriaudit-logo.png?v=20260914";
 const ALT = "VeriAudit. Trust every audit.";
 
 export function BrandMark({

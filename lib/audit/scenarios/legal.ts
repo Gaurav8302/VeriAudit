@@ -30,7 +30,14 @@ export interface LegalEvidence {
   readonly requiredClauseTopics: readonly string[];
   readonly dpa: { readonly executed: boolean; readonly executedOn: string | null };
   readonly retention: { readonly requiredMonths: number; readonly configuredMonths: number };
-  readonly subprocessors: readonly { readonly name: string; readonly disclosed: boolean }[];
+  readonly subprocessors: readonly {
+    readonly name: string;
+    readonly role: string;
+    readonly location: string;
+    readonly disclosed: boolean;
+  }[];
+  readonly transfers: { readonly mechanism: string; readonly sccsExecuted: boolean };
+  readonly dataSubjectRights: { readonly processDocumented: boolean; readonly medianResponseDays: number };
   readonly breachNotification: { readonly regulatoryMaxHours: number; readonly policyHours: number };
   readonly training: readonly { readonly team: string; readonly completed: boolean }[];
 }
@@ -45,6 +52,8 @@ const CLAUSES: Clause[] = [
   { clauseId: "CL-03", contractId: "MSA-7741", topic: "audit_rights", text: "Customer may audit annually on 30 days' notice." },
   { clauseId: "CL-04", contractId: "MSA-7741", topic: "breach_notification", text: "Processor notifies within 48 hours of becoming aware." },
   { clauseId: "CL-05", contractId: "MSA-7741", topic: "subprocessors", text: "Subprocessors listed in Annex B; changes notified." },
+  { clauseId: "CL-06", contractId: "MSA-7741", topic: "data_subject_rights", text: "Processor assists with access, erasure, and portability requests within 30 days." },
+  { clauseId: "CL-07", contractId: "MSA-7741", topic: "international_transfers", text: "Transfers outside the EEA use the 2021 Standard Contractual Clauses." },
 ];
 
 const REQUIREMENTS: Requirement[] = [
@@ -73,9 +82,12 @@ const EVIDENCE: LegalEvidence = {
   // Configured retention is short of the regulatory requirement.
   retention: { requiredMonths: 72, configuredMonths: 48 },
   subprocessors: [
-    { name: "Helios Hosting", disclosed: true },
-    { name: "Larkspur Analytics", disclosed: true },
+    { name: "Helios Hosting", role: "infrastructure", location: "Ireland", disclosed: true },
+    { name: "Larkspur Analytics", role: "telemetry", location: "Germany", disclosed: true },
+    { name: "Northfen Support", role: "ticket handling", location: "United Kingdom", disclosed: true },
   ],
+  transfers: { mechanism: "2021 Standard Contractual Clauses", sccsExecuted: true },
+  dataSubjectRights: { processDocumented: true, medianResponseDays: 18 },
   breachNotification: { regulatoryMaxHours: 72, policyHours: 48 },
   training: [
     { team: "Engineering", completed: true },
@@ -332,7 +344,7 @@ const ARTIFACTS: Artifact[] = [
   {
     artifactId: ART_REGISTER,
     kind: "register",
-    title: "Compliance Requirement Register",
+    title: "Processor Obligation and Subprocessor Register",
     mimeType: "text/plain",
     rows: REQUIREMENTS.length,
     content: [
@@ -346,7 +358,9 @@ const ARTIFACTS: Artifact[] = [
           `${(r.satisfiedBy ?? "UNMAPPED").padEnd(13)} ${r.description}`,
       ),
       "",
-      `subprocessors: ${EVIDENCE.subprocessors.map((s) => `${s.name} (disclosed=${s.disclosed})`).join(", ")}`,
+      `subprocessors: ${EVIDENCE.subprocessors.map((s) => `${s.name}/${s.location} (disclosed=${s.disclosed})`).join(", ")}`,
+      `international_transfers: ${EVIDENCE.transfers.mechanism}; SCCs executed=${EVIDENCE.transfers.sccsExecuted}`,
+      `data_subject_rights: documented=${EVIDENCE.dataSubjectRights.processDocumented}; median_days=${EVIDENCE.dataSubjectRights.medianResponseDays}`,
       `training: ${EVIDENCE.training.map((t) => `${t.team}=${t.completed}`).join(", ")}`,
     ].join("\n"),
     parsed: {
@@ -358,21 +372,26 @@ const ARTIFACTS: Artifact[] = [
   {
     artifactId: ART_CONTRACT,
     kind: "contract",
-    title: "Master Services Agreement MSA-7741",
+    title: "Processor Agreement DPA-7741 (MSA-7741)",
     mimeType: "text/plain",
     rows: null,
     content: [
-      "MASTER SERVICES AGREEMENT MSA-7741",
+      "PROCESSOR AGREEMENT DPA-7741",
+      "incorporating Master Services Agreement MSA-7741",
       `data processing agreement executed: ${EVIDENCE.dpa.executedOn}`,
+      `international transfers: ${EVIDENCE.transfers.mechanism}`,
       "",
       ...CLAUSES.map((c) => `${c.clauseId}  [${c.topic}]  ${c.text}`),
+      "",
+      "Annex B — subprocessors: Helios Hosting (IE), Larkspur Analytics (DE), Northfen Support (UK).",
+      "Note: no clause addresses documented technical and organisational security measures (GDPR Art.32).",
     ].join("\n"),
     parsed: { contract_id: "MSA-7741", clauses: CLAUSES.length, topics: CLAUSES.map((c) => c.topic).sort() },
   },
   {
     artifactId: ART_POLICY,
     kind: "policy",
-    title: "Internal Compliance Policy LEG-POL-2",
+    title: "Retention and Breach Notification Policy LEG-POL-2",
     mimeType: "text/plain",
     rows: null,
     content: [
@@ -382,6 +401,7 @@ const ARTIFACTS: Artifact[] = [
       `2.2 Regulatory minimum retention is ${EVIDENCE.retention.requiredMonths} months.`,
       `2.3 Breaches are notified within ${EVIDENCE.breachNotification.policyHours} hours.`,
       `2.4 The regulatory maximum notification window is ${EVIDENCE.breachNotification.regulatoryMaxHours} hours.`,
+      `2.5 Data-subject requests are answered within ${EVIDENCE.dataSubjectRights.medianResponseDays} days on the current runbook.`,
     ].join("\n"),
     parsed: {
       policy_id: "LEG-POL-2",
@@ -395,8 +415,8 @@ export const legalScenario: AuditScenario<LegalEvidence> = {
   scenarioId: "legal",
   displayName: "Legal / Compliance Audit",
   description:
-    "Maps mandatory regulatory requirements to executed contract clauses and tests the " +
-    "supporting compliance policy.",
+    "Checks whether a company is meeting the obligations it agreed to when it sends " +
+    "personal data to a processor — contract clauses, subprocessors, and retention.",
   isHero: false,
 
   auditId: "AUD-LEG-2026-08",
@@ -412,14 +432,15 @@ export const legalScenario: AuditScenario<LegalEvidence> = {
   controls: CONTROLS,
 
   retrieval: {
-    query: "processor obligations security measures retention clause mapping",
+    query: "processor obligations security measures retention clause mapping subprocessors",
     artifactIds: [ART_REGISTER, ART_CONTRACT, ART_POLICY],
     passages: [
       "REQ-06 (GDPR Art.32): documented technical and organisational security measures — satisfied_by: UNMAPPED.",
-      "MSA-7741 clause topics present: data_processing, confidentiality, audit_rights, breach_notification, subprocessors.",
+      "DPA-7741 / MSA-7741 clauses present: processing, confidentiality, audit rights, breach notice, subprocessors, data-subject rights, international transfers.",
+      "Annex B subprocessors: Helios Hosting, Larkspur Analytics, Northfen Support — all disclosed.",
       "LEG-POL-2 §2.1: records are retained for 48 months.",
       "LEG-POL-2 §2.2: regulatory minimum retention is 72 months.",
-      "MSA-7741 CL-04: processor notifies within 48 hours of becoming aware.",
+      "DPA-7741 CL-04: processor notifies within 48 hours of becoming aware.",
     ],
   },
 
@@ -457,11 +478,17 @@ export const legalScenario: AuditScenario<LegalEvidence> = {
 
   searchTags: [
     "gdpr",
+    "gdpr processor obligations",
     "processor obligations",
+    "processor agreement",
     "clause mapping",
     "retention period",
     "compliance exception",
+    "data subject rights",
+    "international transfers",
+    "subprocessor",
     "REG-MAP-01",
     "MSA-7741",
+    "DPA-7741",
   ],
 };

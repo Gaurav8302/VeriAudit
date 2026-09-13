@@ -1,3 +1,6 @@
+import type { Scenario } from "@/lib/audit/types";
+import { SCENARIO_BRIEFINGS } from "@/lib/audit/scenarios/briefs";
+
 export interface ExplainerCopy {
   readonly title: string;
   readonly body: string;
@@ -128,7 +131,43 @@ const COPY: Record<ExplainerTopic, ExplainerCopy> = {
   },
 };
 
-export function explainerCopy(topic: ExplainerTopic): ExplainerCopy {
+const SCENARIO_SELECT: Record<Scenario, ExplainerCopy> = {
+  financial: {
+    title: "What is this audit?",
+    body:
+      "This checks whether revenue was booked only after the work was delivered. A human auditor cares about early recognition, approval authority, and whether the same person posted and approved an entry.",
+  },
+  legal: {
+    title: "What is this audit?",
+    body: SCENARIO_BRIEFINGS.legal.what + " " + SCENARIO_BRIEFINGS.legal.checking,
+  },
+  cyber: {
+    title: "What is this audit?",
+    body: SCENARIO_BRIEFINGS.cyber.what + " " + SCENARIO_BRIEFINGS.cyber.checking,
+  },
+  procurement: {
+    title: "What is this audit?",
+    body: SCENARIO_BRIEFINGS.procurement.what + " " + SCENARIO_BRIEFINGS.procurement.checking,
+  },
+};
+
+export function explainerCopy(topic: ExplainerTopic, scenarioId?: Scenario | null): ExplainerCopy {
+  if (topic === "scenario_select") {
+    return scenarioId
+      ? SCENARIO_SELECT[scenarioId]
+      : {
+          title: "Why are we starting with an audit?",
+          body:
+            "Each card is a complete live audit. Financial is the recommended reference path. Legal, cybersecurity, and procurement use the same engine with their own evidence, findings, and trail.",
+        };
+  }
+  if (topic === "tamper") {
+    return {
+      title: COPY.tamper.title,
+      body:
+        "We are not changing the company's underlying business records. We are changing the historical representation of what the original execution claims happened. Not every change is a hacker attack — software bugs, administrator actions, compromised accounts, accidental edits, or deliberate manipulation can all affect a record. The question is whether you can detect that it no longer matches what was originally sealed.",
+    };
+  }
   return COPY[topic];
 }
 

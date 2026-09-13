@@ -1,5 +1,5 @@
 import { formatDay, money } from "@/lib/demo/format";
-import type { FindingView, RunPayload } from "@/lib/demo/payloads";
+import type { FindingView, ReviewView, RunPayload } from "@/lib/demo/payloads";
 
 export function Result({
   run,
@@ -81,13 +81,24 @@ export function Result({
             </li>
           ))}
         </ul>
-        <p className="side-copy">
-          Two findings were accepted. One was modified. The AI was not treated as
-          automatically correct.
-        </p>
+        <p className="side-copy">{reviewSummary(reviews, findings)}</p>
       </aside>
     </article>
   );
+}
+
+function reviewSummary(reviews: readonly ReviewView[], findings: readonly FindingView[]): string {
+  const accepted = reviews.filter((review) => review.decision === "accepted").length;
+  const modified = reviews.filter((review) => review.decision === "modified").length;
+  const rejected = reviews.filter((review) => review.decision === "rejected").length;
+  const pending = findings.filter((finding) => finding.status === "open").length;
+  const parts: string[] = [];
+  if (accepted) parts.push(`${accepted} accepted`);
+  if (modified) parts.push(`${modified} modified`);
+  if (rejected) parts.push(`${rejected} rejected`);
+  if (pending) parts.push(`${pending} still awaiting a person`);
+  if (parts.length === 0) return "No human review was required for this result.";
+  return `${parts.join(". ")}. The AI was not treated as automatically correct.`;
 }
 
 function PrimaryFinding({ finding }: { finding: FindingView }) {

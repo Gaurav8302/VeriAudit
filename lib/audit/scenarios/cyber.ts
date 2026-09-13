@@ -18,6 +18,7 @@ interface Account {
   readonly mfaEnabled: boolean;
   readonly status: "active" | "disabled";
   readonly lastReviewedOn: string;
+  readonly lastLoginOn: string | null;
 }
 
 interface Termination {
@@ -49,16 +50,18 @@ const ART_CONFIG = "ART-CYB-002";
 const ART_REVIEW = "ART-CYB-003";
 
 const ACCOUNTS: Account[] = [
-  { userId: "svc-deploy", name: "Deployment Service Account", privileged: true, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01" },
-  { userId: "p.adeyemi", name: "P. Adeyemi", privileged: true, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01" },
+  { userId: "svc-deploy", name: "Deployment Service Account", privileged: true, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01", lastLoginOn: "2026-09-28" },
+  { userId: "p.adeyemi", name: "P. Adeyemi", privileged: true, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01", lastLoginOn: "2026-09-29" },
   // Privileged without MFA — the high-severity exception.
-  { userId: "l.moreau", name: "L. Moreau", privileged: true, mfaEnabled: false, status: "active", lastReviewedOn: "2026-09-01" },
-  { userId: "s.kaur", name: "S. Kaur", privileged: true, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01" },
-  { userId: "m.brandt", name: "M. Brandt", privileged: true, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01" },
-  { userId: "j.ferreira", name: "J. Ferreira", privileged: false, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01" },
-  { userId: "a.novak", name: "A. Novak", privileged: false, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01" },
+  { userId: "l.moreau", name: "L. Moreau", privileged: true, mfaEnabled: false, status: "active", lastReviewedOn: "2026-09-01", lastLoginOn: "2026-09-27" },
+  { userId: "s.kaur", name: "S. Kaur", privileged: true, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01", lastLoginOn: "2026-09-12" },
+  { userId: "m.brandt", name: "M. Brandt", privileged: true, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01", lastLoginOn: "2026-09-30" },
+  { userId: "j.ferreira", name: "J. Ferreira", privileged: false, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01", lastLoginOn: "2026-09-26" },
+  { userId: "a.novak", name: "A. Novak", privileged: false, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01", lastLoginOn: "2026-09-18" },
   // Terminated but still active — the second high-severity exception.
-  { userId: "r.dlamini", name: "R. Dlamini", privileged: false, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01" },
+  { userId: "r.dlamini", name: "R. Dlamini", privileged: false, mfaEnabled: true, status: "active", lastReviewedOn: "2026-09-01", lastLoginOn: "2026-09-08" },
+  // Disabled leftover privileged account — not an exception because status is disabled.
+  { userId: "k.okonkwo", name: "K. Okonkwo", privileged: true, mfaEnabled: true, status: "disabled", lastReviewedOn: "2026-07-15", lastLoginOn: "2026-06-02" },
 ];
 
 const TERMINATIONS: Termination[] = [
@@ -414,18 +417,18 @@ const ARTIFACTS: Artifact[] = [
   {
     artifactId: ART_ACCESS,
     kind: "access_export",
-    title: "Identity Provider Access Export",
+    title: "Privileged Account and Access Export",
     mimeType: "text/plain",
     rows: ACCOUNTS.length,
     content: [
       "IDENTITY PROVIDER ACCESS EXPORT",
       `as_of: ${EVIDENCE.asOf}`,
       "",
-      "user_id       privileged  mfa    status    last_reviewed  name",
+      "user_id       privileged  mfa    status    last_reviewed  last_login  name",
       ...ACCOUNTS.map(
         (a) =>
           `${a.userId.padEnd(13)} ${String(a.privileged).padEnd(11)} ${String(a.mfaEnabled).padEnd(6)} ` +
-          `${a.status.padEnd(9)} ${a.lastReviewedOn}     ${a.name}`,
+          `${a.status.padEnd(9)} ${a.lastReviewedOn}     ${(a.lastLoginOn ?? "never").padEnd(11)} ${a.name}`,
       ),
       "",
       "TERMINATIONS",
@@ -444,7 +447,7 @@ const ARTIFACTS: Artifact[] = [
   {
     artifactId: ART_CONFIG,
     kind: "register",
-    title: "Security Configuration Baseline",
+    title: "MFA and Configuration Baseline",
     mimeType: "text/plain",
     rows: null,
     content: [
@@ -453,6 +456,8 @@ const ARTIFACTS: Artifact[] = [
       `session_timeout_minutes: ${EVIDENCE.config.sessionTimeoutMinutes} (max ${EVIDENCE.config.sessionTimeoutMaxMinutes})`,
       `audit_logging_enabled: ${EVIDENCE.config.auditLoggingEnabled}`,
       `encryption_at_rest_enabled: ${EVIDENCE.config.encryptionAtRestEnabled}`,
+      "separation_of_duties: privileged grant requires a second approver",
+      "inactive_privileged_account: k.okonkwo disabled 2026-07-15",
     ].join("\n"),
     parsed: { ...EVIDENCE.config },
   },
@@ -481,8 +486,8 @@ export const cyberScenario: AuditScenario<CyberEvidence> = {
   scenarioId: "cyber",
   displayName: "Cybersecurity / IT Audit",
   description:
-    "Tests privileged access, joiner-mover-leaver revocation, and the security configuration " +
-    "baseline against an identity provider export.",
+    "Checks whether people with powerful system access actually have the access they should " +
+    "have — MFA, revocation, reviews, and configuration.",
   isHero: false,
 
   auditId: "AUD-CYB-2026-09",
@@ -498,13 +503,14 @@ export const cyberScenario: AuditScenario<CyberEvidence> = {
   controls: CONTROLS,
 
   retrieval: {
-    query: "privileged access mfa termination revocation configuration baseline",
+    query: "privileged access mfa termination revocation configuration baseline inactive account",
     artifactIds: [ART_ACCESS, ART_CONFIG, ART_REVIEW],
     passages: [
-      "Access export: l.moreau — privileged=true, mfa=false, status=active.",
+      "Access export: l.moreau — privileged=true, mfa=false, status=active. MFA exception.",
       "Access export: r.dlamini — terminated 2026-08-29, access_revoked_on: NOT REVOKED, status=active.",
+      "Access export: k.okonkwo — privileged leftover account, status=disabled, last login 2026-06-02.",
       "Access review register: privileged_account_cap=4, privileged_accounts_active=5.",
-      "Configuration baseline: audit_logging_enabled=true, encryption_at_rest_enabled=true.",
+      "Configuration baseline: audit logging on, encryption at rest on, second approver required for privileged grants.",
     ],
   },
 
@@ -546,10 +552,13 @@ export const cyberScenario: AuditScenario<CyberEvidence> = {
   searchTags: [
     "privileged access",
     "mfa",
+    "mfa exception",
     "access review",
     "terminated access",
+    "inactive account",
     "access exception",
     "ACC-MFA-01",
     "configuration baseline",
+    "separation of duties",
   ],
 };

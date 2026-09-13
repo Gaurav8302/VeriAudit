@@ -1,14 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { APPROVED_CLAIMS, SUGGESTION_CHIPS } from "@/lib/demo/copy";
+import type { Scenario } from "@/lib/audit/types";
+import { scenarioInquiry } from "@/lib/demo/scenario-copy";
 
 export function Investigation({
+  scenarioId,
   onSearch,
 }: {
+  scenarioId: Scenario | null;
   onSearch: (query: string) => void;
 }) {
   const [query, setQuery] = useState("");
+  const inquiry = scenarioInquiry(scenarioId);
 
   return (
     <article className="frame compose">
@@ -16,7 +20,7 @@ export function Investigation({
         <p className="kicker">Inquiry</p>
         <h1 className="display">The original decision is no longer in sight.</h1>
         <blockquote className="quote">
-          <p>{APPROVED_CLAIMS.bossQuestion}</p>
+          <p>{inquiry.bossQuestion}</p>
         </blockquote>
       </div>
       <aside className="side-panel">
@@ -45,7 +49,7 @@ export function Investigation({
           </button>
         </form>
         <div className="chips">
-          {SUGGESTION_CHIPS.map((chip) => (
+          {inquiry.chips.map((chip) => (
             <button key={chip} type="button" className="chip" onClick={() => onSearch(chip)}>
               {chip}
             </button>

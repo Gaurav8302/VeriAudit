@@ -116,7 +116,7 @@ export function buildEventChain<E>(
       type: "artifact.parsed",
       actor: "ai",
       title: `Parsed: ${artifact.title}`,
-      summary: `${artifact.title} interpreted into structured figures.`,
+      summary: `${artifact.title} interpreted into structured records.`,
       detail: {
         artifact_id: artifact.artifactId,
         parsed_fields: Object.keys(artifact.parsed).sort(),

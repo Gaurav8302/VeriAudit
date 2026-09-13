@@ -23,11 +23,13 @@ export type { ExecutionSnapshot, WhyConclusion } from "./trail";
 export {
   HERO_SCENARIO_ID,
   SCENARIOS,
+  SCENARIO_BRIEFINGS,
   cyberScenario,
   financialScenario,
   legalScenario,
   procurementScenario,
   resolveScenario,
+  scenarioBriefing,
   scenarioByAuditId,
   scenarioById,
   scenarioCatalogue,

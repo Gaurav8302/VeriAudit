@@ -39,6 +39,7 @@ export type ArtifactKind =
   | "policy"
   | "access_export"
   | "vendor_file"
+  | "goods_receipt"
   | "register";
 
 /**

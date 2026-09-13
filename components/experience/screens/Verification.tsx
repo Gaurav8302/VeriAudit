@@ -5,27 +5,33 @@ import { ExecutionLineage } from "@/components/experience/ExecutionLineage";
 import { reconstruct, verifyCoolReceipt } from "@/lib/demo/client";
 import { APPROVED_CLAIMS } from "@/lib/demo/copy";
 import type { ExplainerTopic } from "@/lib/demo/explainer";
-import { statusWord } from "@/lib/demo/format";
+import { formatDay, statusWord } from "@/lib/demo/format";
 import type { IntegrityView, ReconstructionPayload, SessionEvidence } from "@/lib/demo/payloads";
 import { firstReceipt, tamperLogState } from "@/lib/demo/tamper";
 import type { VerificationStatus } from "@/lib/demo/types";
 
-const ORIGINAL_EXECUTION = {
-  number: "001",
-  title: "Initial audit",
-  date: "15 September 2026",
-  state: "sealed" as const,
-  note: "Historical record remains unchanged.",
-};
-
-const REWORK_EXECUTION = {
-  number: "002",
-  title: "Re-investigation of F-FIN-001",
-  date: "15 December 2026",
-  state: "new" as const,
-  note: "Records the later investigation.",
-  basedOn: "001",
-};
+function lineageFor(reconstruction: ReconstructionPayload | null) {
+  const audit = reconstruction?.audit as { title?: string; openedAt?: string } | undefined;
+  const findingId = reconstruction?.findings?.[0]?.findingId ?? "the original finding";
+  return {
+    auditTitle: audit?.title ?? "Audit execution",
+    original: {
+      number: "001",
+      title: "Initial audit",
+      date: audit?.openedAt ? formatDay(audit.openedAt) : "15 September 2026",
+      state: "sealed" as const,
+      note: "Historical record remains unchanged.",
+    },
+    rework: {
+      number: "002",
+      title: `Re-investigation of ${findingId}`,
+      date: "15 December 2026",
+      state: "new" as const,
+      note: "Records the later investigation.",
+      basedOn: "001",
+    },
+  };
+}
 
 type Beat =
   | "result"
@@ -138,8 +144,8 @@ export function Verification({
   const integrity = reconstruction.integrity;
   const finding = reconstruction.findings?.[0];
   const review = reconstruction.reviews?.[0];
-  const originalTitle =
-    finding?.title ?? "Revenue recognised before performance obligation satisfied";
+  const lineage = lineageFor(reconstruction);
+  const originalTitle = finding?.title ?? "Primary finding from the original execution";
   const modifiedTitle = originalTitle.replace(/\bbefore\b/i, "after");
   const canTamper = Boolean(evidence && Object.keys(evidence.receipts).length > 0);
   const passed = integrity.status === "verified";
@@ -158,8 +164,8 @@ export function Verification({
           create a new one that references it.
         </p>
         <ExecutionLineage
-          auditTitle="Revenue Recognition Audit"
-          executions={[ORIGINAL_EXECUTION]}
+          auditTitle={lineage.auditTitle}
+          executions={[lineage.original]}
         />
         <button type="button" className="primary" onClick={() => setBeat("rework-done")}>
           Start new execution
@@ -179,8 +185,8 @@ export function Verification({
           work.
         </p>
         <ExecutionLineage
-          auditTitle="Revenue Recognition Audit"
-          executions={[ORIGINAL_EXECUTION, REWORK_EXECUTION]}
+          auditTitle={lineage.auditTitle}
+          executions={[lineage.original, lineage.rework]}
         />
         <p className="section-label">New work recorded</p>
         <ol className="plain faint rework-steps">
@@ -216,9 +222,9 @@ export function Verification({
             creating a new execution?
           </p>
           <p className="lede lede-follow">
-            We are not changing the company&apos;s financial data. We are changing
-            the recorded history of what happened during the original
-            AI-assisted audit.
+            We are not changing the company&apos;s underlying business records.
+            We are changing the recorded history of what happened during the
+            original AI-assisted audit.
           </p>
           <button
             type="button"
@@ -231,7 +237,7 @@ export function Verification({
         <aside className="side-panel">
           <p className="section-label">Original sealed record</p>
           <p className="finding-id">
-            {finding?.findingId ?? "F-FIN-001"}
+            {finding?.findingId ?? "original finding"}
             {review && (
               <>
                 <span className="sep"> · </span>
@@ -255,8 +261,8 @@ export function Verification({
           <p className="warn-label">Historical record modified</p>
           <h1 className="display">Why does this matter?</h1>
           <p className="lede">
-            The underlying financial data did not change. What changed is what
-            the historical execution now claims happened.
+            The underlying business records did not change. What changed is
+            what the historical execution now claims happened.
           </p>
           <p className="lede lede-follow">
             In a real system, this could happen through an administrator, a

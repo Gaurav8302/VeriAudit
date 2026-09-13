@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import type { Scenario } from "@/lib/audit/types";
 import { explainerCopy, type ExplainerTopic } from "@/lib/demo/explainer";
 
 export function Explainer({
   topic,
+  scenarioId,
   raised,
 }: {
   topic: ExplainerTopic;
+  scenarioId?: Scenario | null;
   raised?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const copy = explainerCopy(topic);
+  const copy = explainerCopy(topic, scenarioId);
 
   return (
     <aside className={raised ? "explainer raised" : "explainer"}>
@@ -26,7 +29,7 @@ export function Explainer({
         </div>
       ) : (
         <button type="button" className="explainer-toggle" onClick={() => setOpen(true)}>
-          ? What am I looking at?
+          What am I looking at?
         </button>
       )}
     </aside>

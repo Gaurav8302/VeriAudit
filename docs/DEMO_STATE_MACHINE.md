@@ -80,7 +80,8 @@ START → welcome → scenario_select → running → result
 ```
 
 `walkGoldenPath()` in `lib/demo` executes this with the financial hero
-ids. Other scenarios may run at `run_audit`; they are secondary.
+ids. Other scenarios may run at `run_audit`; they are complete first-class
+paths, not placeholders. Financial remains the recommended reference story.
 
 Target wall time (presentation, not backend): see
 `DEMO_TIMING_SECONDS` in `lib/demo/copy.ts`. Do not throttle real APIs.

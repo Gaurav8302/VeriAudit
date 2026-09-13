@@ -6,11 +6,13 @@
  */
 import { assertUniqueScenarioIds } from "../ids";
 import type { AuditScenario, Scenario } from "../types";
+import { SCENARIO_BRIEFINGS } from "./briefs";
 import { cyberScenario } from "./cyber";
 import { financialScenario } from "./financial";
 import { legalScenario } from "./legal";
 import { procurementScenario } from "./procurement";
 
+export { SCENARIO_BRIEFINGS, scenarioBriefing } from "./briefs";
 export { cyberScenario, financialScenario, legalScenario, procurementScenario };
 
 /**
@@ -44,17 +46,21 @@ export function resolveScenario(idOrAuditId: string): AuditScenario<never> | und
 }
 
 export function scenarioCatalogue() {
-  return SCENARIOS.map((s) => ({
-    scenarioId: s.scenarioId,
-    displayName: s.displayName,
-    description: s.description,
-    isHero: s.isHero,
-    auditId: s.auditId,
-    executionId: s.executionId,
-    title: s.title,
-    period: s.period,
-    controlsInScope: s.controls.length,
-    artifactsInScope: s.artifacts.length,
-    expected: s.expected,
-  }));
+  return SCENARIOS.map((s) => {
+    const briefing = SCENARIO_BRIEFINGS[s.scenarioId];
+    return {
+      scenarioId: s.scenarioId,
+      displayName: s.displayName,
+      description: s.description,
+      isHero: s.isHero,
+      auditId: s.auditId,
+      executionId: s.executionId,
+      title: s.title,
+      period: s.period,
+      controlsInScope: s.controls.length,
+      artifactsInScope: s.artifacts.length,
+      expected: s.expected,
+      briefing,
+    };
+  });
 }

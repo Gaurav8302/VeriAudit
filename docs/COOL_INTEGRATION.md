@@ -129,7 +129,7 @@ be noise, and the source of truth explicitly warns against it.
 `CONFIRMED` in Milestone 2 — and for **all four scenarios**, not just the hero.
 Every scenario seals exactly nine events, because the selection is one
 representative per stage rather than a fraction of the total. Legal (22 events),
-cyber (25), and procurement (23) each seal nine; the hero's 30 also seal nine.
+cyber (25), and procurement (25) each seal nine; the hero's 30 also seal nine.
 Verified by test D5 and by `scripts/proof-audits.ts`.
 
 The nine are chosen so they form an **unbroken parent chain** from

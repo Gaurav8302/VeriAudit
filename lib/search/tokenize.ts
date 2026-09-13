@@ -90,6 +90,22 @@ export function expand(tokens: readonly string[]): { tokens: string[]; phrases: 
   if (joined.includes("september") && joined.includes("revenue")) {
     phrases.add("september revenue audit");
   }
+  if (joined.includes("gdpr") || (joined.includes("processor") && joined.includes("obligations"))) {
+    phrases.add("gdpr processor obligations");
+    phrases.add("processor obligations");
+  }
+  if (joined.includes("privileged") && joined.includes("access")) {
+    phrases.add("privileged access");
+  }
+  if (joined.includes("mfa") && joined.includes("exception")) {
+    phrases.add("mfa exception");
+  }
+  if (joined.includes("three-way") || (joined.includes("three") && joined.includes("match"))) {
+    phrases.add("three-way match");
+  }
+  if (joined.includes("vendor") && joined.includes("invoice") && joined.includes("variance")) {
+    phrases.add("vendor invoice variance");
+  }
 
   return {
     tokens: [...expanded].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),

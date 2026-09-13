@@ -194,7 +194,11 @@ export const AUDITS: readonly SimulatedAudit[] = [
       findings: 2,
       humanReviewCompleted: true,
     },
-    searchTags: [...legalScenario.searchTags],
+    searchTags: [
+      ...legalScenario.searchTags,
+      "gdpr processor obligations",
+      "processor agreement",
+    ],
     hasEngineTrail: true,
   },
   {
@@ -257,13 +261,13 @@ export const AUDITS: readonly SimulatedAudit[] = [
       findings: 3,
       humanReviewCompleted: false,
     },
-    searchTags: [...cyberScenario.searchTags],
+    searchTags: [...cyberScenario.searchTags, "mfa exception", "inactive account"],
     hasEngineTrail: true,
   },
   {
     auditId: "AUD-CYB-2026-10",
     scenario: "cyber",
-    title: "Quarterly Privileged Access Recertification",
+    title: "Quarterly Administrator Access Recertification",
     period: "2026-Q4",
     openedAt: "2026-10-28T08:20:00.000Z",
     closedAt: "2026-10-30T16:00:00.000Z",
@@ -278,7 +282,7 @@ export const AUDITS: readonly SimulatedAudit[] = [
       findings: 1,
       humanReviewCompleted: true,
     },
-    searchTags: ["privileged access", "recertification", "access review"],
+    searchTags: ["administrator access", "recertification", "access review"],
     hasEngineTrail: false,
   },
   {
@@ -320,7 +324,11 @@ export const AUDITS: readonly SimulatedAudit[] = [
       findings: 2,
       humanReviewCompleted: true,
     },
-    searchTags: [...procurementScenario.searchTags],
+    searchTags: [
+      ...procurementScenario.searchTags,
+      "vendor invoice variance",
+      "goods receipt",
+    ],
     hasEngineTrail: true,
   },
   {
@@ -477,7 +485,7 @@ export const ACTIVITY_DRAFTS: readonly ActivityDraft[] = [
     scenario: "procurement",
     title: "Vendor Onboarding and Three-Way Match Review",
     description:
-      "9 controls over the vendor master, purchase orders, and invoices. Two exceptions; the three-way-match finding was rejected on review.",
+      "9 controls over the vendor master, purchase orders, goods receipts, and invoices. Two exceptions; the three-way-match finding was rejected on review.",
     auditId: procurementScenario.auditId,
     executionId: procurementScenario.executionId,
     status: "exception",
@@ -609,8 +617,8 @@ export const ACTIVITY_DRAFTS: readonly ActivityDraft[] = [
   {
     type: "control_test",
     scenario: "procurement",
-    title: "Control PO-MATCH-02: purchase-order to invoice match",
-    description: "VINV-4003 bills 109,400 against a 91,000 purchase order.",
+    title: "Control PO-MATCH-02: three-way match of order, receipt, and invoice",
+    description: "VINV-4003 bills 109,400 against a 91,000 purchase order and a 91,000 goods receipt.",
     auditId: procurementScenario.auditId,
     executionId: procurementScenario.executionId,
     status: "exception",
@@ -1085,14 +1093,14 @@ export const ACTIVITY_DRAFTS: readonly ActivityDraft[] = [
   {
     type: "access_review",
     scenario: "cyber",
-    title: "Quarterly privileged access recertification",
-    description: "Managers recertified 42 privileged roles. One role outstanding — tracked on AUD-CYB-2026-10.",
+    title: "Quarterly administrator access recertification",
+    description: "Managers recertified 42 administrator roles. One role outstanding — tracked on AUD-CYB-2026-10.",
     auditId: "AUD-CYB-2026-10",
     executionId: "EXEC-CYB-2026-10-001",
     status: "in_review",
     findingId: null,
     actor: "human",
-    searchTags: ["privileged access", "recertification", "access review"],
+    searchTags: ["administrator access", "recertification", "access review"],
     coolBacked: false,
   },
   {

@@ -196,7 +196,7 @@ export function AiWorkspace({ auditId }: { auditId: string }) {
                 rows={4}
                 disabled={!writable || busy}
                 onChange={(event) => setPrompt(event.target.value)}
-                placeholder="Check these revenue transactions against the recognition policy."
+                placeholder="Ask what the evidence supports, and what still needs a human decision."
               />
             </label>
           </div>

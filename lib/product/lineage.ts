@@ -5,7 +5,22 @@
  * execution. It never writes into the original. This is not CooL sealing and
  * does not invent events.
  */
+import { resolveScenario } from "@/lib/audit/scenarios";
 import { getWorkspaceAudit, HERO_AUDIT_ID, HERO_EXECUTION_ID } from "./workspace";
+
+function declaredTrailLength(auditId: string): number | null {
+  const scenario = resolveScenario(auditId);
+  if (!scenario) return null;
+  return (
+    1 +
+    scenario.artifacts.length * 2 +
+    2 +
+    scenario.controls.length +
+    scenario.expected.findings +
+    Object.keys(scenario.reviewPolicy.decisions).length +
+    1
+  );
+}
 
 export type ExecutionLife = "sealed" | "open" | "recorded" | "sample" | "closed";
 export type AuditLife = ExecutionLife | "reopened" | "wip" | "review_required";
@@ -74,7 +89,7 @@ export function catalogExecutions(auditId: string): ProductExecution[] {
       createdAt: audit.openedAt,
       status: audit.hasEngineTrail ? "recorded" : "sample",
       parentExecutionId: null,
-      eventCount: null,
+      eventCount: declaredTrailLength(auditId),
       findingCount: audit.findingCount,
       hasEngineTrail: audit.hasEngineTrail,
       immutable: true,
@@ -107,24 +122,32 @@ export function reopenAudit(
   extras: readonly ProductExecution[] = [],
   createdAt?: string,
 ): ProductExecution {
-  if (auditId !== HERO_AUDIT_ID) {
-    throw new Error("Only the September revenue audit can be reopened in this product phase.");
+  const scenario = resolveScenario(auditId);
+  if (!scenario) {
+    throw new Error("Only engine-backed catalog audits can be reopened this way.");
   }
 
   const current = mergeExecutions(auditId, extras);
-  const original = current.find((item) => item.executionId === HERO_EXECUTION_ID);
+  const original = current[0];
   if (!original) {
     throw new Error("The original execution is missing.");
   }
-  if (JSON.stringify(snapshotExecution(original)) !== JSON.stringify(HERO_ORIGINAL_SNAPSHOT)) {
-    throw new Error("The original sealed execution cannot be changed.");
+  if (auditId === HERO_AUDIT_ID) {
+    const hero = current.find((item) => item.executionId === HERO_EXECUTION_ID);
+    if (!hero) {
+      throw new Error("The original execution is missing.");
+    }
+    if (JSON.stringify(snapshotExecution(hero)) !== JSON.stringify(HERO_ORIGINAL_SNAPSHOT)) {
+      throw new Error("The original sealed execution cannot be changed.");
+    }
   }
 
   const parent = current[current.length - 1]!;
   const sequence = current.length + 1;
+  const code = scenario.eventCode.split("-")[0] ?? "FIN";
   return {
-    executionId: `EXEC-FIN-2026-12-${String(sequence).padStart(3, "0")}`,
-    auditId: HERO_AUDIT_ID,
+    executionId: `EXEC-${code}-2026-12-${String(sequence).padStart(3, "0")}`,
+    auditId,
     sequence,
     label: `Execution ${String(sequence).padStart(3, "0")}`,
     createdAt: createdAt ?? reopenTimestamp(sequence),
@@ -200,7 +223,7 @@ export function latestActivity(
 }
 
 export function canReopen(auditId: string): boolean {
-  return auditId === HERO_AUDIT_ID;
+  return Boolean(resolveScenario(auditId));
 }
 
 export function executionHref(auditId: string, executionId: string): string {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { APPROVED_CLAIMS } from "@/lib/demo/copy";
 
 const CHAIN = [
@@ -69,7 +70,7 @@ export function Landing({
   return (
     <div className="home">
       <header className="home-bar">
-        <p className="chrome-mark">VeriAudit</p>
+        <BrandMark variant="compact" />
         <button type="button" className="primary tight" onClick={onStart}>
           {completed ? "Start the demo again" : "Start the demo"}
         </button>

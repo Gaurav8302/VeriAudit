@@ -31,3 +31,8 @@
   width: auto;
   max-width: none;
 }
+
+.chrome .brand-mark-compact,
+.home-bar .brand-mark-compact {
+  height: 1.7rem;
+}

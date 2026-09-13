@@ -35,12 +35,20 @@ interface VendorInvoice {
   readonly receivedOn: string;
 }
 
+interface GoodsReceipt {
+  readonly receiptId: string;
+  readonly poId: string;
+  readonly amountUsd: number;
+  readonly receivedOn: string;
+}
+
 export interface ProcurementEvidence {
   readonly asOf: string;
   readonly attestationValidMonths: number;
   readonly vendors: readonly Vendor[];
   readonly purchaseOrders: readonly PurchaseOrder[];
   readonly invoices: readonly VendorInvoice[];
+  readonly goodsReceipts: readonly GoodsReceipt[];
   readonly approvers: readonly {
     readonly userId: string;
     readonly name: string;
@@ -55,6 +63,7 @@ export interface ProcurementEvidence {
 const ART_VENDORS = "ART-PRC-001";
 const ART_POS = "ART-PRC-002";
 const ART_INVOICES = "ART-PRC-003";
+const ART_RECEIPTS = "ART-PRC-004";
 
 const VENDORS: Vendor[] = [
   { vendorId: "V-501", name: "Cobalt Industrial Supply", approvedOn: "2026-02-11", sanctionsCheckedOn: "2026-07-01", complianceAttestationOn: "2026-06-15" },
@@ -73,9 +82,16 @@ const PURCHASE_ORDERS: PurchaseOrder[] = [
 const INVOICES: VendorInvoice[] = [
   { invoiceId: "VINV-4001", poId: "PO-9001", amountUsd: 148_000, receivedOn: "2026-07-29" },
   { invoiceId: "VINV-4002", poId: "PO-9002", amountUsd: 62_500, receivedOn: "2026-08-24" },
-  // Invoiced above the purchase order — the three-way match exception.
+  // Invoiced above the purchase order and goods receipt — the three-way match exception.
   { invoiceId: "VINV-4003", poId: "PO-9003", amountUsd: 109_400, receivedOn: "2026-09-12" },
   { invoiceId: "VINV-4004", poId: "PO-9004", amountUsd: 34_200, receivedOn: "2026-09-26" },
+];
+
+const GOODS_RECEIPTS: GoodsReceipt[] = [
+  { receiptId: "GR-7001", poId: "PO-9001", amountUsd: 148_000, receivedOn: "2026-07-22" },
+  { receiptId: "GR-7002", poId: "PO-9002", amountUsd: 62_500, receivedOn: "2026-08-18" },
+  { receiptId: "GR-7003", poId: "PO-9003", amountUsd: 91_000, receivedOn: "2026-09-04" },
+  { receiptId: "GR-7004", poId: "PO-9004", amountUsd: 34_200, receivedOn: "2026-09-20" },
 ];
 
 const EVIDENCE: ProcurementEvidence = {
@@ -84,6 +100,7 @@ const EVIDENCE: ProcurementEvidence = {
   vendors: VENDORS,
   purchaseOrders: PURCHASE_ORDERS,
   invoices: INVOICES,
+  goodsReceipts: GOODS_RECEIPTS,
   approvers: [
     { userId: "h.lindqvist", name: "H. Lindqvist", role: "Director of Procurement", authorityUsd: 250_000 },
     { userId: "g.tanaka", name: "G. Tanaka", role: "Procurement Manager", authorityUsd: 100_000 },
@@ -155,49 +172,65 @@ const CONTROLS: Control<ProcurementEvidence>[] = [
   {
     controlId: "PO-MATCH-02",
     name: "Three-way match",
-    description: "Invoice amounts agree with the purchase order within tolerance.",
+    description: "Purchase order, goods receipt, and invoice amounts agree within tolerance.",
     category: "reconciliation",
-    artifactIds: [ART_POS, ART_INVOICES],
+    artifactIds: [ART_POS, ART_INVOICES, ART_RECEIPTS],
     evaluate: ({ evidence }) => {
-      const overbilled = evidence.invoices.flatMap((invoice) => {
+      const mismatches = evidence.invoices.flatMap((invoice) => {
         const po = evidence.purchaseOrders.find((p) => p.poId === invoice.poId);
-        if (!po) return [];
-        const variance = invoice.amountUsd - po.amountUsd;
-        if (variance <= evidence.matchToleranceUsd) return [];
-        return [{ invoice, po, variance }];
+        const receipt = evidence.goodsReceipts.find((g) => g.poId === invoice.poId);
+        if (!po || !receipt) return [];
+        const invoiceVsPo = invoice.amountUsd - po.amountUsd;
+        const invoiceVsReceipt = invoice.amountUsd - receipt.amountUsd;
+        if (
+          invoiceVsPo <= evidence.matchToleranceUsd &&
+          invoiceVsReceipt <= evidence.matchToleranceUsd
+        ) {
+          return [];
+        }
+        return [{ invoice, po, receipt, invoiceVsPo, invoiceVsReceipt }];
       });
 
-      if (overbilled.length === 0) {
+      if (mismatches.length === 0) {
         return {
           status: "pass",
-          observed: { invoices: evidence.invoices.length, over_po: 0, tolerance_usd: evidence.matchToleranceUsd },
-          rationale: `All ${evidence.invoices.length} invoices match their purchase order within tolerance.`,
+          observed: {
+            invoices: evidence.invoices.length,
+            goods_receipts: evidence.goodsReceipts.length,
+            mismatched: 0,
+            tolerance_usd: evidence.matchToleranceUsd,
+          },
+          rationale: `All ${evidence.invoices.length} invoices match the purchase order and goods receipt within tolerance.`,
         };
       }
 
-      const first = overbilled[0]!;
+      const first = mismatches[0]!;
       return {
         status: "exception",
         observed: {
           invoices: evidence.invoices.length,
-          over_po: overbilled.length,
-          invoice_ids: overbilled.map((o) => o.invoice.invoiceId),
+          goods_receipts: evidence.goodsReceipts.length,
+          mismatched: mismatches.length,
+          invoice_ids: mismatches.map((o) => o.invoice.invoiceId),
           po_amount_usd: first.po.amountUsd,
+          receipt_amount_usd: first.receipt.amountUsd,
           invoice_amount_usd: first.invoice.amountUsd,
-          variance_usd: first.variance,
+          variance_usd: first.invoiceVsPo,
         },
         rationale:
           `${first.invoice.invoiceId} bills ${money(first.invoice.amountUsd)} against ` +
-          `${first.po.poId} raised for ${money(first.po.amountUsd)}, a variance of ` +
-          `${money(first.variance)} with no approved change order.`,
+          `${first.po.poId} (${money(first.po.amountUsd)}) and ${first.receipt.receiptId} ` +
+          `(${money(first.receipt.amountUsd)}), a variance of ${money(first.invoiceVsPo)} ` +
+          "with no approved change order.",
         finding: {
           severity: "medium",
-          title: "Vendor invoice exceeds the purchase order",
+          title: "Vendor invoice exceeds the purchase order and goods receipt",
           description:
-            `${first.invoice.invoiceId} exceeds ${first.po.poId} by ${money(first.variance)} ` +
-            `(${Math.round((first.variance / first.po.amountUsd) * 100)}%).`,
+            `${first.invoice.invoiceId} exceeds ${first.po.poId} and ${first.receipt.receiptId} ` +
+            `by ${money(first.invoiceVsPo)} ` +
+            `(${Math.round((first.invoiceVsPo / first.po.amountUsd) * 100)}%).`,
           recommendedAction: "Withhold payment of the variance pending an approved change order.",
-          amountUsd: first.variance,
+          amountUsd: first.invoiceVsPo,
         },
       };
     },
@@ -398,10 +431,11 @@ const CONTROLS: Control<ProcurementEvidence>[] = [
     name: "Evidence completeness",
     description: "Every invoice and purchase order resolves to evidence held in scope.",
     category: "completeness",
-    artifactIds: [ART_VENDORS, ART_POS, ART_INVOICES],
+    artifactIds: [ART_VENDORS, ART_POS, ART_INVOICES, ART_RECEIPTS],
     evaluate: ({ evidence }) => {
       const dangling = [
         ...evidence.invoices.filter((i) => !evidence.purchaseOrders.some((p) => p.poId === i.poId)),
+        ...evidence.goodsReceipts.filter((g) => !evidence.purchaseOrders.some((p) => p.poId === g.poId)),
         ...evidence.purchaseOrders.filter((p) => !evidence.vendors.some((v) => v.vendorId === p.vendorId)),
       ];
       return {
@@ -410,7 +444,7 @@ const CONTROLS: Control<ProcurementEvidence>[] = [
           invoices: evidence.invoices.length,
           purchase_orders: evidence.purchaseOrders.length,
           dangling_references: dangling.length,
-          artifacts_in_scope: 3,
+          artifacts_in_scope: 4,
         },
         rationale:
           dangling.length === 0
@@ -494,14 +528,34 @@ const ARTIFACTS: Artifact[] = [
       total_usd: INVOICES.reduce((s, i) => s + i.amountUsd, 0),
     },
   },
+  {
+    artifactId: ART_RECEIPTS,
+    kind: "goods_receipt",
+    title: "Goods Receipt Register",
+    mimeType: "text/plain",
+    rows: GOODS_RECEIPTS.length,
+    content: [
+      "GOODS RECEIPT REGISTER",
+      "",
+      "receipt_id  po_id     amount_usd  received_on",
+      ...GOODS_RECEIPTS.map(
+        (g) => `${g.receiptId.padEnd(12)} ${g.poId.padEnd(9)} ${String(g.amountUsd).padStart(10)}  ${g.receivedOn}`,
+      ),
+    ].join("\n"),
+    parsed: {
+      goods_receipts: GOODS_RECEIPTS.length,
+      total_usd: GOODS_RECEIPTS.reduce((s, g) => s + g.amountUsd, 0),
+      unmatched_invoice: "VINV-4003 vs GR-7003",
+    },
+  },
 ];
 
 export const procurementScenario: AuditScenario<ProcurementEvidence> = {
   scenarioId: "procurement",
   displayName: "Procurement / Vendor Audit",
   description:
-    "Tests vendor onboarding, the three-way match between purchase order and invoice, and " +
-    "procurement authorisation.",
+    "Checks whether what the company ordered, received, and paid for actually matches — " +
+    "vendor approval, purchase orders, goods receipts, and invoices.",
   isHero: false,
 
   auditId: "AUD-PRC-2026-09",
@@ -517,12 +571,13 @@ export const procurementScenario: AuditScenario<ProcurementEvidence> = {
   controls: CONTROLS,
 
   retrieval: {
-    query: "vendor approval purchase order invoice variance authorisation",
-    artifactIds: [ART_VENDORS, ART_POS, ART_INVOICES],
+    query: "vendor approval purchase order invoice goods receipt three-way match variance",
+    artifactIds: [ART_VENDORS, ART_POS, ART_INVOICES, ART_RECEIPTS],
     passages: [
       "Vendor master: V-503 Pinehurst Consulting — approved_on: NOT APPROVED.",
       "Purchase order PO-9003 — V-503 — 91,000 — raised 2026-08-21.",
-      "Vendor invoice VINV-4003 — PO-9003 — 109,400 — received 2026-09-12.",
+      "Goods receipt GR-7003 — PO-9003 — 91,000 — received 2026-09-04.",
+      "Vendor invoice VINV-4003 — PO-9003 — 109,400 — received 2026-09-12. Invoice variance.",
       "Approval matrix: h.lindqvist authority 250,000; g.tanaka authority 100,000.",
     ],
   },
@@ -534,10 +589,10 @@ export const procurementScenario: AuditScenario<ProcurementEvidence> = {
       assessment:
         `Vendor and purchase evidence reviewed across ${input.passages.length} retrieved passages. ` +
         "One purchase order was raised against a vendor with no approval on record, and one invoice " +
-        "bills above its purchase order with no change order evidenced.",
+        "bills above both its purchase order and goods receipt with no change order evidenced.",
       observations: [
         "PO-9003 was raised against V-503, which has no vendor approval date.",
-        "VINV-4003 bills 109,400 against a 91,000 purchase order.",
+        "VINV-4003 bills 109,400 against a 91,000 purchase order and a 91,000 goods receipt.",
       ],
     }),
   }),
@@ -567,9 +622,12 @@ export const procurementScenario: AuditScenario<ProcurementEvidence> = {
     "vendor approval",
     "three-way match",
     "purchase order variance",
+    "vendor invoice variance",
+    "goods receipt",
     "unapproved vendor",
     "procurement exception",
     "VEN-APPR-01",
     "PO-9003",
+    "VINV-4003",
   ],
 };
