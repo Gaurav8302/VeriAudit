@@ -11,7 +11,8 @@ node_modules/
 out/
 build/
 
-# env — .env.example IS committed, real env files are not
+# env — .env.example IS committed, real env files are not.
+# `vercel link` appends a blanket `.env*` below; the negation keeps the example.
 .env
 .env*.local
 
@@ -28,5 +29,6 @@ cool-proof/.playwright-mcp/
 coverage/
 *.tsbuildinfo
 
-.vercel
+# appended by `vercel link` (.vercel holds the project id + a fetched OIDC token)
 .env*
+!.env.example
