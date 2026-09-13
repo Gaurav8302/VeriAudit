@@ -1,5 +1,5 @@
-import { ExperienceApp } from "@/components/experience/ExperienceApp";
+import { ProductLanding } from "@/components/marketing/ProductLanding";
 
 export default function Page() {
-  return <ExperienceApp />;
+  return <ProductLanding />;
 }
