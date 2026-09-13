@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { FAQS } from "@/components/marketing/copy";
+import { PRODUCT_SHORTCUT } from "@/components/marketing/product-shortcut";
 
 describe("public landing copy", () => {
   it("keeps the FAQ honest about product maturity", () => {
@@ -23,14 +24,17 @@ describe("public landing copy", () => {
     expect(trace?.a).toMatch(/not a new explanation/i);
   });
 
-  it("does not expose a direct product shortcut on the public landing page", () => {
+  it("keeps the product pathway pointed at the workspace and gated on completion", () => {
+    expect(PRODUCT_SHORTCUT.href).toBe("/product");
+    expect(PRODUCT_SHORTCUT.label).toMatch(/explore the product/i);
+    expect(PRODUCT_SHORTCUT.note).toMatch(/you've seen the demonstration/i);
     const source = readFileSync(
       resolve(process.cwd(), "components/marketing/ProductLanding.tsx"),
       "utf8",
     );
-    expect(source).not.toMatch(/PRODUCT_SHORTCUT/);
-    expect(source).not.toMatch(/Explore the Product/);
-    expect(source).not.toMatch(/href=["']\/product["']/);
+    expect(source).toMatch(/completed &&/);
+    expect(source).toMatch(/isDemoCompleted/);
+    expect(source).not.toMatch(/BrandMark variant="hero"/);
   });
 
   it("explains verification without claiming the AI was correct", () => {

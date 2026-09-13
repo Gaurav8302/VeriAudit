@@ -125,9 +125,9 @@ const COPY: Record<ExplainerTopic, ExplainerCopy> = {
       "The signing identity can still be recognized. What failed is integrity: the current historical record no longer matches the evidence that was sealed. Rework is allowed. Rewriting history is detectable.",
   },
   complete: {
-    title: "What should I take away?",
+    title: "What happens next?",
     body:
-      "VeriAudit makes consequential AI work searchable, reconstructable, and cryptographically verifiable. Legitimate rework creates a new record. Changing the old record is detectable.",
+      "Verification is the proof. The product is the workspace being built around it: real audit work, evidence, review, and a history you can reconstruct later.",
   },
 };
 

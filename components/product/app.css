@@ -156,6 +156,11 @@
   color: var(--ink);
 }
 
+.va-back {
+  color: var(--accent-strong) !important;
+  font-weight: 600;
+}
+
 .va-body {
   padding: var(--space-6) var(--space-6) 3rem;
   max-width: 86rem;

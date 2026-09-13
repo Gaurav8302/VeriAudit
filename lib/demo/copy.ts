@@ -17,6 +17,16 @@ export const APPROVED_CLAIMS = {
   failed: "Integrity verification failed",
   notACorrectnessProof:
     "This verifies that the recorded execution has not been silently changed. It does not mean the AI decision was objectively correct.",
+  productAfterProof:
+    "The decision is backed by cryptographic evidence. The record shows what the AI did, what it found, and what the human approved.",
+  productFoundation: "This is the foundation of VeriAudit.",
+  productVision:
+    "VeriAudit is being built as a real audit workspace: AI-assisted investigation, live execution traces, evidence, review, and a history you can reconstruct later.",
+  exploreProduct: "Explore the product",
+  restartWalkthrough: "Restart walkthrough",
+  continueRework: "What if we need to investigate this again?",
+  landingAfterWalkthrough:
+    "You've seen the demonstration. Now you can inspect the product yourself.",
 } as const;
 
 export const FORBIDDEN_CLAIMS = [
