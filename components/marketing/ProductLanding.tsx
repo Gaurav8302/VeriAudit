@@ -199,7 +199,7 @@ export function ProductLanding() {
           <div className="site-hero-copy">
             <p className="site-kicker">Trust every audit.</p>
             <h1 id="hero-title" className="site-display">
-              AI-powered audits with an execution trail you can verify.
+              AI-powered audit work. Every action traceable.
             </h1>
             <p className="site-lead">
               VeriAudit helps audit teams work with AI while preserving the

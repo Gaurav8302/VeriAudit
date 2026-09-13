@@ -6,12 +6,12 @@ import { BrandMark } from "@/components/brand/BrandMark";
 import { isAuditWorkspace, pageMeta } from "@/lib/product/pageMeta";
 import "./app.css";
 
-const PRIMARY = [{ href: "/product", label: "Overview", exact: true }] as const;
-
-const AUDIT_NAV = [
-  { href: "/product/audits", label: "Audits" },
-  { href: "/product/audits/new", label: "Create Audit" },
+const PRIMARY = [
+  { href: "/product", label: "Overview", exact: true },
+  { href: "/product/audits/new", label: "Create Audit", exact: true },
 ] as const;
+
+const AUDIT_NAV = [{ href: "/product/audits", label: "Audits" }] as const;
 
 const INVESTIGATION = [
   { href: "/product/executions", label: "Executions" },

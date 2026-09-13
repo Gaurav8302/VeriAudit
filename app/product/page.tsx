@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RecentAiActivity } from "@/components/product/RecentAiActivity";
 import {
   domainLabel,
   featuredAudits,
@@ -18,9 +19,13 @@ export default function OverviewPage() {
   return (
     <>
       <p className="va-wip">Work in progress</p>
-      <p className="va-intro">
-        This preview demonstrates the product direction. Sample audits are
-        included so you can explore the workflow. Nothing here is
+      <p className="va-intro va-home-pitch">
+        Run AI-assisted audit work while keeping every meaningful execution
+        traceable. The assistant analyzes evidence you attach. Humans review
+        findings. VeriAudit records the execution so it can be inspected later.
+      </p>
+      <p className="va-empty">
+        Sample audits below are for orientation. Nothing here is
         cryptographically verified unless a product execution has been sealed
         and the server has confirmed it, or you complete the guided demo and
         hold a receipt.
@@ -38,9 +43,11 @@ export default function OverviewPage() {
         </Link>
       </div>
 
+      <RecentAiActivity />
+
       <div className="va-grid">
         <section className="va-panel">
-          <h2>Recent audits</h2>
+          <h2>Active audits</h2>
           <table className="va-table">
             <thead>
               <tr>
@@ -75,7 +82,7 @@ export default function OverviewPage() {
         </section>
 
         <section className="va-panel">
-          <h2>Open findings</h2>
+          <h2>Recent findings</h2>
           <ul className="va-list">
             {findings.map((finding) => (
               <li key={finding.findingId}>

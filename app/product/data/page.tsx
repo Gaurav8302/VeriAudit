@@ -21,7 +21,7 @@ export default function TestDataPage() {
       <section className="va-section">
         <h2>Upload samples</h2>
         <p className="va-empty">
-          Use these files in Ask VeriAudit. They are sample records, not sealed
+          Use these files with the AI audit assistant. They are sample records, not sealed
           receipts.
         </p>
         <table className="va-table">

@@ -154,6 +154,13 @@ export function LocalFindingDetail({
       <p className="va-lede">
         {finding.findingId} — {finding.title}
       </p>
+      {finding.origin === "ai" ? (
+        <p className="va-empty">
+          AI observation → finding → human review. Current state:{" "}
+          {findingReviewLabel(finding.review)}. The assistant does not approve
+          this finding.
+        </p>
+      ) : null}
       <dl className="va-detail">
         <div>
           <dt>Finding ID</dt>

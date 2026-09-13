@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { suffix: "", label: "Workspace" },
+  { suffix: "/ai", label: "AI Assistant" },
+  { suffix: "/trace", label: "Trace" },
   { suffix: "/evidence", label: "Evidence" },
   { suffix: "/findings", label: "Findings" },
-  { suffix: "/ai", label: "Ask VeriAudit" },
   { suffix: "/executions", label: "Executions" },
-  { suffix: "/trace", label: "Trace" },
 ] as const;
 
 export function WorkspaceNav({ auditId }: { auditId: string }) {

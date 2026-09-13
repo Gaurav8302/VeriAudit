@@ -35,6 +35,7 @@ describe("public landing copy", () => {
     expect(source).toMatch(/completed &&/);
     expect(source).toMatch(/isDemoCompleted/);
     expect(source).not.toMatch(/BrandMark variant="hero"/);
+    expect(source).toMatch(/AI-powered audit work\. Every action traceable\./);
   });
 
   it("explains verification without claiming the AI was correct", () => {

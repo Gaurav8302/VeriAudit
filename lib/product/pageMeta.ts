@@ -8,7 +8,7 @@ const PAGES: Record<string, PageMeta> = {
   "/product": {
     chrome: "Overview",
     title: "Your audit workspace",
-    lede: "Create an audit, inspect sample work, or continue a local execution.",
+    lede: "Run AI-assisted audit work while keeping every meaningful execution traceable.",
   },
   "/product/audits": {
     chrome: "Audits",
@@ -18,7 +18,7 @@ const PAGES: Record<string, PageMeta> = {
   "/product/audits/new": {
     chrome: "Create audit",
     title: "Create audit",
-    lede: "Create a workspace for a new audit.",
+    lede: "Create an audit that an AI assistant will help you perform.",
   },
   "/product/executions": {
     chrome: "Executions",
@@ -75,9 +75,9 @@ export function pageMeta(pathname: string): PageMeta {
   }
   if (pathname.endsWith("/ai")) {
     return {
-      chrome: "Ask VeriAudit",
-      title: "Ask VeriAudit",
-      lede: "AI-assisted work on the selected execution. Chat is not the audit trail.",
+      chrome: "AI Assistant",
+      title: "AI audit assistant",
+      lede: "The assistant performs assigned audit work. The live trace is the record of that work.",
     };
   }
   if (pathname.endsWith("/findings")) {
@@ -90,7 +90,7 @@ export function pageMeta(pathname: string): PageMeta {
     return {
       chrome: "Workspace",
       title: "Workspace",
-      lede: "AI assistance, evidence, findings, and the live trace for one execution.",
+      lede: "AI audit assistant, live execution trace, evidence, findings, and review for one execution.",
     };
   }
   return { chrome: "Product", title: "Product workspace", lede: "VeriAudit application." };

@@ -39,16 +39,6 @@ export function AuditOverview({
 
   return (
     <div className="va-workspace-canvas">
-      <p className="va-lede">
-        Humans perform this <Term name="audit">audit</Term>. AI assists. Every
-        meaningful action is recorded on {current?.label ?? "this execution"}.
-        {current?.status === "closed"
-          ? " This execution is closed."
-          : writable
-            ? " This execution is active and unsealed."
-            : " Historical work stays intact."}
-      </p>
-      <WorkspaceActions auditId={auditId} />
       <dl className="va-detail">
         <div>
           <dt>Audit</dt>
@@ -75,44 +65,23 @@ export function AuditOverview({
           <dd>{formatDay(catalog?.audit.openedAt ?? local?.createdAt ?? "")}</dd>
         </div>
       </dl>
-
-      {hero && (
-        <section className="va-section">
-          <h2>Sealed sample result</h2>
-          <div className="va-stats">
-            <div>
-              <strong>{hero.controlsTested}</strong>
-              <span>Tested</span>
-            </div>
-            <div>
-              <strong>{hero.controlsPassed}</strong>
-              <span>Passed</span>
-            </div>
-            <div>
-              <strong>{hero.exceptions}</strong>
-              <span>Exceptions</span>
-            </div>
-            <div>
-              <strong>{hero.humanReviews}</strong>
-              <span>Reviews</span>
-            </div>
-          </div>
-          <p className="va-empty">
-            These figures belong to the sealed original. They are not a live AI
-            result.
-          </p>
-        </section>
-      )}
-
+      <p className="va-lede">
+        The <Term name="assistant">assistant</Term> works on this{" "}
+        <Term name="audit">audit</Term>. Humans review. Every meaningful action
+        is recorded on {current?.label ?? "this execution"}.
+        {current?.status === "closed"
+          ? " This execution is closed."
+          : writable
+            ? " This execution is active and unsealed."
+            : " Historical work stays intact."}
+      </p>
+      <WorkspaceActions auditId={auditId} />
       {local ? (
-        <section className="va-section">
-          <h2>Scope</h2>
-          <p className="va-empty">
-            {local.description || "No description yet."}
-            {local.period ? ` Period: ${local.period}.` : ""}
-            {local.reference ? ` Reference: ${local.reference}.` : ""}
-          </p>
-        </section>
+        <p className="va-empty">
+          {local.description || "No description yet."}
+          {local.period ? ` Period: ${local.period}.` : ""}
+          {local.reference ? ` Reference: ${local.reference}.` : ""}
+        </p>
       ) : null}
 
       <AiWorkspace auditId={auditId} />
@@ -189,6 +158,34 @@ export function AuditOverview({
           )}
         </section>
       </div>
+
+      {hero && (
+        <section className="va-section">
+          <h2>Sealed sample result</h2>
+          <div className="va-stats">
+            <div>
+              <strong>{hero.controlsTested}</strong>
+              <span>Tested</span>
+            </div>
+            <div>
+              <strong>{hero.controlsPassed}</strong>
+              <span>Passed</span>
+            </div>
+            <div>
+              <strong>{hero.exceptions}</strong>
+              <span>Exceptions</span>
+            </div>
+            <div>
+              <strong>{hero.humanReviews}</strong>
+              <span>Reviews</span>
+            </div>
+          </div>
+          <p className="va-empty">
+            These figures belong to the sealed original. They are not a live AI
+            result.
+          </p>
+        </section>
+      )}
     </div>
   );
 }

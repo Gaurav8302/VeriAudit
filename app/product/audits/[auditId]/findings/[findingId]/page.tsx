@@ -114,8 +114,9 @@ export default async function FindingDetailPage({
         <p className="va-note" style={{ padding: "1rem" }}>
           <span className="va-wip">Work in progress</span>
           <br />
-          Live AI analysis will be connected in a later product phase. The
-          recorded deterministic assessment from reconstruction
+          This is a sample catalog finding. Live AI analysis is recorded on
+          local executions in the workspace, not rewritten onto this sealed
+          sample. The recorded deterministic assessment from reconstruction
           {workspace.assessment ? ` is: “${workspace.assessment}”` : " is not available on this row."}
         </p>
       </section>

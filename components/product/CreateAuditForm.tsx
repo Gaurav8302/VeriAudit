@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PRODUCT_DOMAINS } from "@/lib/product/localWorkspace";
 import type { ProductDomain } from "@/lib/product/workspace";
+import { ProductExplainer } from "./ProductExplainer";
 import { Term } from "./Term";
 import { useWorkspace } from "./WorkspaceProvider";
 
@@ -30,12 +31,16 @@ export function CreateAuditForm() {
   return (
     <>
       <p className="va-intro">
-        You are creating an <Term name="audit">audit</Term> workspace. A new
-        execution starts immediately. AI can assist; humans review findings.
-        New work stays unsealed.
+        You are creating an <Term name="audit">audit</Term> that an AI assistant
+        will help you perform. A new execution starts immediately. Humans review
+        findings. New work stays unsealed until you close and seal it.
       </p>
+      <ProductExplainer
+        title="What is the AI doing?"
+        body="The assistant analyzes the evidence you provide, performs audit tasks, and records the important actions it takes so the work can be reviewed later."
+      />
       <form className="va-section" onSubmit={submit}>
-        <h2>New audit</h2>
+        <h2>Create audit</h2>
         <div className="va-form">
           <label>
             Audit name
@@ -47,7 +52,7 @@ export function CreateAuditForm() {
             />
           </label>
           <label>
-            Domain
+            Audit type
             <select value={domain} onChange={(event) => setDomain(event.target.value as ProductDomain)}>
               {PRODUCT_DOMAINS.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -61,7 +66,7 @@ export function CreateAuditForm() {
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              rows={4}
+              rows={3}
               placeholder="What is in scope, and why this review exists."
             />
           </label>
@@ -82,6 +87,19 @@ export function CreateAuditForm() {
             />
           </label>
         </div>
+        <section className="va-create-ai">
+          <p className="va-kicker">AI audit assistant</p>
+          <h3>This audit opens into a working assistant.</h3>
+          <p>
+            After you create it, attach evidence or try the sample pack. The
+            assistant will analyze that material, perform the tasks you assign,
+            and record its actions on the execution for later review.
+          </p>
+          <p className="meta">
+            AI assists. Humans review. VeriAudit records the execution. It does
+            not approve the audit on its own.
+          </p>
+        </section>
         {error ? <p className="va-empty">{error}</p> : null}
         <div className="va-actions" style={{ padding: "0 1rem 1rem" }}>
           <button type="submit" className="va-btn va-btn-primary">
@@ -90,8 +108,9 @@ export function CreateAuditForm() {
         </div>
       </form>
       <p className="va-empty">
-        The new audit starts open, with one empty execution. Nothing here is
-        sealed or verified.
+        Evidence is added in the workspace, not on this form. The new audit
+        starts open, with one empty execution. Nothing here is sealed or
+        verified.
       </p>
     </>
   );
