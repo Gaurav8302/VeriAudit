@@ -47,7 +47,7 @@ The guided demo stays on `/demo`.
 | Active (`open`) | Writable, unsealed |
 | Review required | Active, with pending AI findings |
 | Closed | Immutable, unsealed |
-| Sealed | Hero original only |
+| Sealed | Hero original, or a closed product execution with CooL receipts |
 | Recorded / Sample | Catalog rows |
 
 Closing does not write into the previous execution. Reopening creates
@@ -56,5 +56,7 @@ Closing does not write into the previous execution. Reopening creates
 ## Canonical events
 
 `lib/product/canonicalEvents.ts` maps local activity to types such as
-`audit.started`, `evidence.ingested`, `ai.action.completed`,
-`finding.reviewed`, `audit.closed`. These are **not** CooL receipts.
+`audit.execution.started`, `evidence.ingested`, `ai.action.completed`,
+`finding.reviewed`, `audit.execution.closed`. After close, those events can
+be sealed with the existing CooL adapter. Verification is a server result.
+See [COOL_PRODUCT_INTEGRATION.md](COOL_PRODUCT_INTEGRATION.md).

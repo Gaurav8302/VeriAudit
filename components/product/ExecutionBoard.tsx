@@ -1,10 +1,11 @@
 "use client";
 
-import { useAuditExecutions } from "./WorkspaceProvider";
+import { useAuditExecutions, useWorkspace } from "./WorkspaceProvider";
 import { ExecutionLineage } from "./ExecutionLineage";
 import { WorkspaceActions } from "./WorkspaceActions";
 
 export function ExecutionBoard({ auditId }: { auditId: string }) {
+  const workspace = useWorkspace();
   const { executions, extras } = useAuditExecutions(auditId);
 
   return (
@@ -24,7 +25,11 @@ export function ExecutionBoard({ auditId }: { auditId: string }) {
             No executions yet. Create an execution to start recording work.
           </p>
         ) : (
-          <ExecutionLineage auditId={auditId} executions={executions} />
+          <ExecutionLineage
+            auditId={auditId}
+            executions={executions}
+            sealedIds={executions.filter((item) => workspace.sealFor(item.executionId)).map((item) => item.executionId)}
+          />
         )}
       </section>
     </>

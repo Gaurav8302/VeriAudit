@@ -37,6 +37,10 @@ shell and hero audit workspace live at `/product` on `new-product` — see
 | 14 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | the 8-hour plan, P0/P1/P2, risk register |
 | 15 | [README_PLAN.md](README_PLAN.md) | plan for the public root README |
 | 16 | [PRODUCT_APPLICATION.md](PRODUCT_APPLICATION.md) | product shell, audit workspace, temporary landing shortcut |
+| 17 | [COOL_PRODUCT_INTEGRATION.md](COOL_PRODUCT_INTEGRATION.md) | product executions sealed with the existing CooL adapter |
+| 18 | [EXECUTION_SEALING.md](EXECUTION_SEALING.md) | close / seal / verify contract |
+| 19 | [VERIFICATION_MODEL.md](VERIFICATION_MODEL.md) | server verification and tamper meaning |
+| 20 | [EXECUTION_LINEAGE.md](EXECUTION_LINEAGE.md) | reopen creates a child execution |
 
 Reproducible SDK evidence lives in [`../cool-proof/`](../cool-proof). Upstream
 SDK documentation in `../cool-sdk/docs/` is cited rather than duplicated.

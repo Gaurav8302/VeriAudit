@@ -1,43 +1,38 @@
 /**
- * Maps product-layer work to canonical event types for a future CooL seal.
- * These records are not receipts and are not verified.
+ * Maps product-layer work to canonical event types for a future or completed
+ * CooL seal. These records are not receipts. `sealed` is only true after a
+ * server seal bundle exists for the execution.
  */
 import type { LocalActivity, LocalAiAction, WorkspaceState } from "./localWorkspace";
+import type { ProductEventName } from "./sealTypes";
 
-export type CanonicalEventType =
-  | "audit.started"
-  | "evidence.ingested"
-  | "evidence.read"
-  | "ai.action.started"
-  | "ai.action.completed"
-  | "finding.created"
-  | "finding.reviewed"
-  | "audit.closed";
+export type CanonicalEventType = ProductEventName;
 
 export interface CanonicalEvent {
   readonly type: CanonicalEventType;
   readonly executionId: string;
   readonly title: string;
   readonly occurredAt: string;
-  readonly sealed: false;
+  readonly sealed: boolean;
 }
 
 const ACTIVITY_MAP: Partial<Record<LocalActivity["type"], CanonicalEventType>> = {
-  "execution.opened": "audit.started",
+  "execution.opened": "audit.execution.started",
   "evidence.added": "evidence.ingested",
   "evidence.uploaded": "evidence.ingested",
   "ai.action.started": "ai.action.started",
   "ai.action.completed": "ai.action.completed",
   "finding.created": "finding.created",
   "finding.reviewed": "finding.reviewed",
-  "execution.closed": "audit.closed",
+  "execution.closed": "audit.execution.closed",
 };
 
 export function canonicalEventsFor(
   state: WorkspaceState,
   executionId: string,
 ): CanonicalEvent[] {
-  return state.activities
+  const sealed = Boolean(state.seals[executionId]);
+  const fromActivities = state.activities
     .filter((item) => item.executionId === executionId)
     .flatMap((item) => {
       const type = ACTIVITY_MAP[item.type];
@@ -48,10 +43,25 @@ export function canonicalEventsFor(
           executionId,
           title: item.title,
           occurredAt: item.occurredAt,
-          sealed: false as const,
+          sealed,
         },
       ];
     });
+  const fromReads = state.actions
+    .filter(
+      (item) =>
+        item.executionId === executionId &&
+        item.type === "READ_EVIDENCE" &&
+        item.status === "completed",
+    )
+    .map((item) => ({
+      type: "evidence.read" as const,
+      executionId,
+      title: item.title,
+      occurredAt: item.completedAt ?? item.occurredAt,
+      sealed,
+    }));
+  return [...fromActivities, ...fromReads].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
 }
 
 export function readActionsFor(actions: readonly LocalAiAction[]): LocalAiAction[] {

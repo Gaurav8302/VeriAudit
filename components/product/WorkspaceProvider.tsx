@@ -15,6 +15,7 @@ import {
   addFinding,
   activitiesFor,
   applyAiTurn,
+  attachSeal,
   asWorkspaceAudit,
   buildSampleExport,
   canReopenAudit,
@@ -32,6 +33,7 @@ import {
   parseWorkspace,
   reviewFinding,
   REOPEN_STORAGE_KEY,
+  sealFor,
   selectedExecutionId,
   selectExecution,
   updateFindingStatus,
@@ -48,6 +50,7 @@ import {
   type WorkspaceState,
 } from "@/lib/product/localWorkspace";
 import type { AiMode, AiProviderName, ProposedAction } from "@/lib/ai/types";
+import type { ExecutionSealBundle } from "@/lib/product/sealTypes";
 import {
   mergeExecutions,
   type ProductExecution,
@@ -133,6 +136,8 @@ interface WorkspaceApi {
   }) => LocalAudit;
   createExecution: (auditId: string) => ProductExecution;
   closeExecution: (auditId: string, executionId: string) => ProductExecution;
+  sealFor: (executionId: string) => ExecutionSealBundle | null;
+  attachSeal: (executionId: string, bundle: ExecutionSealBundle) => void;
   reopen: (auditId: string) => ProductExecution;
   addEvidence: (input: Parameters<typeof addEvidence>[1]) => LocalEvidence;
   addFinding: (input: {
@@ -233,6 +238,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         write(result.state);
         return result.execution;
       },
+      sealFor: (executionId) => sealFor(state, executionId),
+      attachSeal: (executionId, bundle) => write(attachSeal(state, executionId, bundle)),
       reopen: (auditId) => {
         const result = createExecution(state, auditId);
         write(result.state);

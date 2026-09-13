@@ -14,10 +14,12 @@ export function ExecutionLineage({
   auditId,
   executions,
   selectedId,
+  sealedIds = [],
 }: {
   auditId: string;
   executions: readonly ProductExecution[];
   selectedId?: string;
+  sealedIds?: readonly string[];
 }) {
   if (executions.length === 0) {
     return (
@@ -63,7 +65,7 @@ export function ExecutionLineage({
               {parent ? (
                 <p className="va-exec-note">
                   Reopened from {parent.label}
-                  <span>New work performed</span>
+                  <span>New work continues from the old execution but does not rewrite it.</span>
                 </p>
               ) : (
                 <p className="va-exec-note">
@@ -71,6 +73,12 @@ export function ExecutionLineage({
                   {execution.immutable ? <span>This record cannot be changed.</span> : null}
                 </p>
               )}
+              {sealedIds.includes(execution.executionId) ? (
+                <p className="va-exec-note">
+                  Closed and sealed
+                  <span>The cryptographic trail stays on this execution.</span>
+                </p>
+              ) : null}
               <p className="meta">{execution.executionId}</p>
             </Link>
             <p className="va-exec-links">

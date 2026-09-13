@@ -9,6 +9,7 @@ import {
 import { useEffect } from "react";
 import { ActivityTimeline } from "./ActivityTimeline";
 import { ExecutionLineage } from "./ExecutionLineage";
+import { ExecutionTrust } from "./ExecutionTrust";
 import { LifeBadge } from "./LifeBadge";
 import { TraceEvents, type TraceEventRow } from "./TraceEvents";
 import { WorkspaceActions } from "./WorkspaceActions";
@@ -56,6 +57,7 @@ export function ExecutionDetail({
   }
 
   const isSealed = execution.status === "sealed";
+  const productSeal = workspace.sealFor(execution.executionId);
   const showEngineTrace = Boolean(execution.hasEngineTrail && originalEvents.length > 0);
 
   return (
@@ -89,7 +91,10 @@ export function ExecutionDetail({
           <p className="va-empty">
             {execution.label} closed on {formatDay(execution.closedAt ?? execution.createdAt)}.
             This record cannot be edited. Reopen the audit to start a later
-            execution. Status: unsealed — not cryptographically verified.
+            execution.
+            {productSeal
+              ? " Status: sealed. Verification is decided by the server."
+              : " Status: unsealed — not cryptographically verified."}
           </p>
         </section>
       ) : (
@@ -149,6 +154,7 @@ export function ExecutionDetail({
             auditId={auditId}
             executions={executions}
             selectedId={execution.executionId}
+            sealedIds={executions.filter((item) => workspace.sealFor(item.executionId)).map((item) => item.executionId)}
           />
         </section>
       )}
@@ -200,6 +206,8 @@ export function ExecutionDetail({
           executionStatus="Sealed"
         />
       )}
+
+      <ExecutionTrust auditId={auditId} executionId={execution.executionId} />
 
       {!isSealed && (
         <>

@@ -7,7 +7,7 @@ import {
   parentOf,
   type ProductExecution,
 } from "@/lib/product/lineage";
-import { useAuditExecutions } from "./LineageProvider";
+import { useAuditExecutions, useWorkspace } from "./LineageProvider";
 import { ExecutionLineage } from "./ExecutionLineage";
 import { ActivityTimeline } from "./ActivityTimeline";
 import { LifeBadge } from "./LifeBadge";
@@ -26,6 +26,7 @@ export function TraceWorkbench({
   originalSpine: readonly { eventId: string; title: string; type: string }[];
   originalEvents: readonly TraceEventRow[];
 }) {
+  const workspace = useWorkspace();
   const { executions } = useAuditExecutions(auditId);
   const selected =
     executions.find((item) => item.executionId === selectedExecutionId) ?? executions[0] ?? null;
@@ -56,6 +57,7 @@ export function TraceWorkbench({
             auditId={auditId}
             executions={executions}
             selectedId={selected.executionId}
+            sealedIds={executions.filter((item) => workspace.sealFor(item.executionId)).map((item) => item.executionId)}
           />
         </section>
       )}

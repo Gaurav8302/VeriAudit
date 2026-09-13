@@ -195,9 +195,12 @@ Iteration 7 adds (`IMPLEMENTED` unless noted):
 - `execution.closed` activity
 - `ProductExecution.status: "closed"` and optional `closedAt`
   (not part of `HERO_ORIGINAL_SNAPSHOT`)
-- `canonicalEventsFor()` — unsealed event candidates, not receipts
+- `canonicalEventsFor()` — product event candidates; `sealed` is true only
+  after a server seal bundle exists
 - Persistence of these records remains `MOCK` (`localStorage`)
-- Sealing those candidates with CooL is `TODO`
+- `WorkspaceState.seals` — public CooL receipt bundles keyed by execution id
+  (`IMPLEMENTED`). This is not a database. Serverless invocations do not keep
+  product receipts in process memory.
 
 Iteration 8 adds (`IMPLEMENTED` unless noted):
 
@@ -208,6 +211,20 @@ Iteration 8 adds (`IMPLEMENTED` unless noted):
 - XLSX extraction remains `TODO`
 
 See [EVIDENCE_INTELLIGENCE.md](EVIDENCE_INTELLIGENCE.md).
+
+Iteration 9 adds (`IMPLEMENTED` unless noted):
+
+- Canonical product events with evidence fingerprints and output commitments
+- `POST /api/product/executions/seal` and `/verify`
+- Server-side verification (identity, measurement, inclusion, tree)
+- Reopen still creates a new execution; the sealed parent is unchanged
+- Attestation / enclave remain unavailable in simulated mode
+- Durable multi-user receipt storage is `TODO`
+
+See [COOL_PRODUCT_INTEGRATION.md](COOL_PRODUCT_INTEGRATION.md),
+[EXECUTION_SEALING.md](EXECUTION_SEALING.md),
+[VERIFICATION_MODEL.md](VERIFICATION_MODEL.md), and
+[EXECUTION_LINEAGE.md](EXECUTION_LINEAGE.md).
 
 ### Event
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { formatDay } from "@/lib/product/workspace";
 import { auditLifeStatus, latestActivity } from "@/lib/product/lineage";
-import { useAuditExecutions } from "./LineageProvider";
+import { useAuditExecutions, useWorkspace } from "./LineageProvider";
 import { ExecutionLineage } from "./ExecutionLineage";
 import { LifeBadge } from "./LifeBadge";
 import { ReopenAudit } from "./ReopenAudit";
@@ -17,6 +17,7 @@ export function AuditLifecycle({
   fallbackActivity: string;
   showBoard?: boolean;
 }) {
+  const workspace = useWorkspace();
   const { executions, extras, canReopen } = useAuditExecutions(auditId);
   const life = auditLifeStatus(executions);
   const latest = latestActivity(fallbackActivity, executions);
@@ -81,7 +82,11 @@ export function AuditLifecycle({
       {showBoard ? (
         <section className="va-section">
           <h2>How the work connects</h2>
-          <ExecutionLineage auditId={auditId} executions={executions} />
+          <ExecutionLineage
+            auditId={auditId}
+            executions={executions}
+            sealedIds={executions.filter((item) => workspace.sealFor(item.executionId)).map((item) => item.executionId)}
+          />
         </section>
       ) : null}
     </>

@@ -25,6 +25,23 @@ If nothing relevant is found, the product answers:
 
 The model is not asked to invent an answer in that case.
 
+## Canonical trail
+
+A completed analysis is recorded as product events, not as a chat
+transcript:
+
+1. `ai.action.started`
+2. `evidence.read` when retrieval ran
+3. `ai.action.completed` with an output commitment (action id, evidence
+   ids, chunk ids, finding id)
+4. `finding.created` when a finding was suggested
+5. `finding.reviewed` when a human accepts, modifies, or rejects it
+
+Those events are sealed only when the execution is closed. The AI is never
+the human reviewer.
+
+See [EXECUTION_SEALING.md](EXECUTION_SEALING.md).
+
 ## Keys
 
 API keys stay in server environment variables. They are not

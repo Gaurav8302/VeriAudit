@@ -1,6 +1,7 @@
 /**
- * Product-level mock workspace: local audits, evidence, findings, and
- * unsealed activity. This is not the audit engine and not CooL.
+ * Product-level mock workspace: local audits, evidence, findings, activity,
+ * and public CooL seal bundles. This is not the audit engine. Receipts stored
+ * here are verified on the server.
  */
 import {
   applyReopen,
@@ -11,6 +12,7 @@ import {
   type ProductExecution,
 } from "./lineage";
 import type { ActionLife, AiActionType, AiMode, AiProviderName, ProposedAction } from "@/lib/ai/types";
+import type { ExecutionSealBundle } from "./sealTypes";
 import { remapChunkIds, type EvidenceChunk, type EvidenceProcessing, type Grounding, type Confidence, type EvidenceReference } from "@/lib/evidence";
 import {
   HERO_AUDIT_ID,
@@ -129,6 +131,7 @@ export interface LocalActivity {
   readonly occurredAt: string;
   readonly actor: "User" | "VeriAudit";
   readonly sealed: false;
+  readonly subjectId: string | null;
 }
 
 export interface WorkspaceState {
@@ -140,6 +143,7 @@ export interface WorkspaceState {
   readonly messages: readonly LocalMessage[];
   readonly actions: readonly LocalAiAction[];
   readonly selected: Readonly<Record<string, string>>;
+  readonly seals: Readonly<Record<string, ExecutionSealBundle>>;
 }
 
 export const EMPTY_WORKSPACE: WorkspaceState = Object.freeze({
@@ -151,6 +155,7 @@ export const EMPTY_WORKSPACE: WorkspaceState = Object.freeze({
   messages: [],
   actions: [],
   selected: {},
+  seals: {},
 });
 
 export const PRODUCT_DOMAINS: readonly { value: ProductDomain; label: string }[] = [
@@ -217,6 +222,10 @@ function asAction(item: LocalAiAction): LocalAiAction {
   return { ...item, chunkIds: item.chunkIds ?? [] };
 }
 
+function asActivity(item: LocalActivity): LocalActivity {
+  return { ...item, subjectId: item.subjectId ?? null };
+}
+
 export function parseWorkspace(raw: unknown): WorkspaceState {
   if (!raw || typeof raw !== "object") return EMPTY_WORKSPACE;
   const value = raw as Partial<WorkspaceState>;
@@ -225,10 +234,11 @@ export function parseWorkspace(raw: unknown): WorkspaceState {
     extras: value.extras && typeof value.extras === "object" ? value.extras : {},
     evidence: Array.isArray(value.evidence) ? value.evidence.map(asEvidence) : [],
     findings: Array.isArray(value.findings) ? value.findings.map(asFinding) : [],
-    activities: Array.isArray(value.activities) ? value.activities : [],
+    activities: Array.isArray(value.activities) ? value.activities.map(asActivity) : [],
     messages: Array.isArray(value.messages) ? value.messages.map(asMessage) : [],
     actions: Array.isArray(value.actions) ? value.actions.map(asAction) : [],
     selected: value.selected && typeof value.selected === "object" ? value.selected : {},
+    seals: value.seals && typeof value.seals === "object" ? value.seals : {},
   };
 }
 
@@ -276,8 +286,9 @@ export function assertWritable(state: WorkspaceState, auditId: string, execution
 
 function withActivity(
   state: WorkspaceState,
-  activity: Omit<LocalActivity, "activityId" | "sealed" | "actor"> & {
+  activity: Omit<LocalActivity, "activityId" | "sealed" | "actor" | "subjectId"> & {
     actor?: LocalActivity["actor"];
+    subjectId?: string | null;
   },
 ): WorkspaceState {
   const activityId = `ACT-LOCAL-${pad(nextCount(state.activities.map((item) => item.activityId), "ACT-LOCAL-"))}`;
@@ -290,6 +301,7 @@ function withActivity(
         activityId,
         actor: activity.actor ?? "User",
         sealed: false,
+        subjectId: activity.subjectId ?? null,
       },
     ],
   };
@@ -356,6 +368,7 @@ export function createAudit(
       type: "execution.opened",
       title: "Execution opened",
       detail: `${execution.label} started for ${audit.title}`,
+      subjectId: execution.executionId,
       occurredAt: createdAt,
     },
   );
@@ -379,6 +392,7 @@ export function createExecution(
         title: "Execution opened",
         detail: `${next.label} reopened from the sealed original`,
         occurredAt: next.createdAt,
+        subjectId: next.executionId,
       }),
       execution: next,
     };
@@ -417,6 +431,7 @@ export function createExecution(
       title: "Execution opened",
       detail: parent ? `${execution.label} connected to ${parent.label}` : `${execution.label} started`,
       occurredAt: at,
+      subjectId: execution.executionId,
     }),
     execution,
   };
@@ -449,9 +464,42 @@ export function closeExecution(
         title: "Execution closed",
         detail: `${current.label} is closed. Later work belongs on a new execution.`,
         occurredAt: at,
+        subjectId: executionId,
       },
     ),
     execution,
+  };
+}
+
+export function sealFor(state: WorkspaceState, executionId: string): ExecutionSealBundle | null {
+  return state.seals[executionId] ?? null;
+}
+
+export function attachSeal(
+  state: WorkspaceState,
+  executionId: string,
+  bundle: ExecutionSealBundle,
+): WorkspaceState {
+  if (executionId === HERO_EXECUTION_ID) {
+    throw new Error("The sealed original execution cannot be changed.");
+  }
+  if (bundle.executionId !== executionId) {
+    throw new Error("The seal does not belong to this execution.");
+  }
+  const extras = Object.values(state.extras).flat();
+  const execution = extras.find((item) => item.executionId === executionId);
+  if (!execution) {
+    throw new Error("That execution is not a product execution.");
+  }
+  if (execution.status !== "closed" && execution.status !== "sealed") {
+    throw new Error("Close the execution before sealing it.");
+  }
+  if (state.seals[executionId]) {
+    throw new Error("This execution is already sealed.");
+  }
+  return {
+    ...state,
+    seals: { ...state.seals, [executionId]: bundle },
   };
 }
 
@@ -524,6 +572,7 @@ export function addEvidence(
         title: uploaded ? "Evidence uploaded" : "Evidence added",
         detail: title,
         occurredAt: createdAt,
+        subjectId: artifactId,
       },
     ),
     evidence,
@@ -587,6 +636,7 @@ export function addFinding(
         title: "Finding created",
         detail: title,
         occurredAt: createdAt,
+        subjectId: finding.findingId,
       },
     ),
     finding,
@@ -616,6 +666,7 @@ export function updateFindingStatus(
         title: "Human review",
         detail: `Finding status changed to ${status.replace("_", " ")}`,
         occurredAt: occurredAt ?? new Date().toISOString(),
+        subjectId: findingId,
       },
     ),
     finding,
@@ -695,6 +746,7 @@ export function reviewFinding(
         title: "Human review",
         detail: reviewNote ? `${findingReviewLabel(review)}: ${reviewNote}` : findingReviewLabel(review),
         occurredAt: occurredAt ?? new Date().toISOString(),
+        subjectId: findingId,
       },
     ),
     finding,
@@ -789,6 +841,7 @@ export function applyAiTurn(
         detail: failed.detail,
         occurredAt: at,
         actor: "VeriAudit",
+        subjectId: failed.actionId,
       },
     );
     return { state: next, findingIds };
@@ -835,6 +888,7 @@ export function applyAiTurn(
         detail: proposed.type,
         occurredAt: at,
         actor: "VeriAudit",
+        subjectId: actionId,
       },
     );
 
@@ -870,6 +924,7 @@ export function applyAiTurn(
         detail: findingId ? `${proposed.type} → ${findingId}` : proposed.type,
         occurredAt: at,
         actor: "VeriAudit",
+        subjectId: actionId,
       },
     );
   }
@@ -921,10 +976,14 @@ export function heroOriginalUnchanged(state: WorkspaceState): boolean {
 }
 
 export function clearLocalWorkspace(state: WorkspaceState): WorkspaceState {
+  const remaining = new Set((state.extras[HERO_AUDIT_ID] ?? []).map((item) => item.executionId));
   return {
     ...EMPTY_WORKSPACE,
     extras: Object.fromEntries(
       Object.entries(state.extras).filter(([auditId]) => auditId === HERO_AUDIT_ID),
+    ),
+    seals: Object.fromEntries(
+      Object.entries(state.seals).filter(([executionId]) => remaining.has(executionId)),
     ),
   };
 }

@@ -62,7 +62,7 @@ export function WorkspaceActions({
       {!writable ? (
         <p className="va-empty">
           {selected?.status === "closed"
-            ? `${selected.label} is closed. Reopen the audit to start a new execution. The closed record stays unchanged.`
+            ? `${selected.label} is closed. Seal it to create CooL receipts, or reopen the audit to start a new execution. The closed record stays unchanged.`
             : "New evidence and findings belong on an open execution. Reopen the audit or create an execution first. The original sealed record stays unchanged."}
         </p>
       ) : (

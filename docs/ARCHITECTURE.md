@@ -276,8 +276,11 @@ normalized before they reach the workspace. See
 [PRODUCT_WORKSPACE.md](PRODUCT_WORKSPACE.md).
 Closing an execution makes it immutable (`IMPLEMENTED`). Reopening appends a
 child execution (`IMPLEMENTED`). Canonical event mapping exists
-(`IMPLEMENTED`). CooL sealing of new work does not (`TODO`). Workspace
-persistence is `MOCK` (`localStorage`).
+(`IMPLEMENTED`). Product CooL sealing of a closed execution is
+(`IMPLEMENTED`) — see [COOL_PRODUCT_INTEGRATION.md](COOL_PRODUCT_INTEGRATION.md)
+and [EXECUTION_SEALING.md](EXECUTION_SEALING.md). Workspace persistence remains
+`MOCK` (`localStorage`); receipts are held with the workspace and verified
+on the server. Attestation/enclave are unavailable in simulated mode.
 Evidence intelligence lives in `lib/evidence/`: parse, chunk, retrieve.
 The analyze route sends retrieved chunks only. See
 [EVIDENCE_INTELLIGENCE.md](EVIDENCE_INTELLIGENCE.md) and
