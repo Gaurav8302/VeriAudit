@@ -160,7 +160,7 @@ its own kind of dishonesty.
 | Signing keys | derived deterministically from the measurement on every connect. Never stored, never transmitted, nothing to rotate |
 | API keys | none — no LLM provider, no database, no external service at runtime |
 | Env vars | `COOL_APP_ID`, `COOL_IMAGE_DIGEST`, `COOL_LOG_ID` — all public values, safe in `.env.example` and the README |
-| Committed constants | `PUBLISHED_KEY_DIRECTORY` and `EXPECTED_MEASUREMENT` in `lib/cool/identity.ts` are **public keys and public measurements**, intended to be published so others can verify |
+| Committed constants | `PUBLISHED_KEY_DIRECTORY` and `EXPECTED_MEASUREMENT` in `lib/cool/identity.generated.ts` are **public keys and public measurements**, intended to be published so others can verify. Committing them is what makes the pin meaningful — a pin derived from the environment could be moved by whoever controls the environment |
 | `.gitignore` | `.env*.local`, `node_modules`, `.next`, `cool-sdk/` |
 
 Per guideline §17: `.env.example` is committed, real env files are not.

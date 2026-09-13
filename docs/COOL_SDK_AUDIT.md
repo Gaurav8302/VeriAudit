@@ -333,19 +333,44 @@ path is non-trivial). `verifyEvidence` was called with no options.
 | 12 | change `record.time.issued_at` | false | binding, signature |
 | 13 | change `runtime.enclave_measurement.mrtd` | false | binding, signature, enclave |
 | 14 | claim `runtime.mode: "hardware"` | false | binding, signature |
-| 15 | drop `inclusion`, keep `sth` | false | structural — "both present or both absent" |
-| 16 | **drop both `inclusion` and `sth`** | **true** | none — `inclusion` is `absent`, which `ok` permits |
+| 15 | `inclusion = null`, keep `sth` | false | structural — "both present or both absent" |
+| 16 | **`inclusion = null` and `sth = null`** | **true** | none — `inclusion` is `absent`, which `ok` permits |
 | 17 | change `event.application_id` | false | binding, signature |
 | 18 | tamper with the attestation quote | false | attestation, enclave |
 
 Two findings that must shape what VeriAudit displays:
 
-- **Case 16 is a real gap.** Stripping the transparency-log proof entirely still
-  yields `ok: true`, because `ok` requires `inclusion ∈ {pass, absent}`. An
-  attacker can remove the evidence that a record sat in a log. VeriAudit must
-  therefore check `inclusion.status === "pass"` itself, not just `verdict.ok`.
+- **Case 16 is a real gap.** Setting both fields to `null` still yields
+  `ok: true` with **zero reasons**, because `ok` requires
+  `inclusion ∈ {pass, absent}`. An attacker can remove the evidence that a
+  record sat in a log and the SDK raises no objection. VeriAudit must therefore
+  check `inclusion.status === "pass"` itself, not just `verdict.ok`.
 - Cases 5 and 6 show each signature algorithm is checked independently, so
   "ML-DSA-65 **and** Ed25519 both verified" is a claim we can make per record.
+
+### Refinement — CONFIRMED in Milestone 1
+
+The `null` in case 16 is load-bearing, and the original wording ("drop both")
+was imprecise: the harness assigned `null`. Assigning `null` and deleting the
+key are **different outcomes**, verified with `cool-proof/probe-inclusion.mjs`:
+
+| Mutation | `ok` | `inclusion` | Reasons |
+|---|---|---|---|
+| `inclusion = null; sth = null` | **true** | `absent` | none |
+| `delete inclusion; delete sth` | false | `absent` | `inclusion: expected an object`, `sth: expected an object` |
+| `delete inclusion` only | false | `absent` | `inclusion: expected an object` |
+| `delete sth` only | false | `absent` | `sth: expected an object` |
+
+This is the **same `undefined`-vs-`null` asymmetry** as the `software.digest`
+bug in §7.1, and it is the SDK's validator convention rather than two unrelated
+quirks: an explicit `null` means "legitimately absent" and passes, while a
+missing key is `undefined` and fails as malformed. Worth knowing generally — it
+predicts how the validator will treat any other optional field.
+
+The security consequence is unchanged and is the stronger of the two paths: the
+mutation CooL accepts (`null`) is the one an attacker would choose, since the
+deletion variant is caught anyway. VeriAudit's `inclusion === "pass"` check is
+what closes it. Tamper cases T6 and T6b in `lib/proof/tamper.ts` pin both rows.
 
 ---
 
@@ -444,6 +469,26 @@ everything still reports `ok: true` — a false-confidence trap.
 `RangeError: offset is out of bounds` from deep inside `codec.js`. Unlike
 `verifyEvidence`, this function is **not** throw-free — wrap it.
 
+Also note `consistencyProof` takes leaf **hashes**, not leaf data: feed it
+`leafHash(recordLeafDataV2(bindingHash))`, not `recordLeafDataV2(...)`.
+
+### 7.6 Key pinning only overrides colliding key ids — CONFIRMED in Milestone 1
+
+`withTrustedKeys` merges by key id, so what it defends against depends entirely
+on whether the ids collide. Three distinct cases, all pinned by tests:
+
+| Scenario | Pinning alone | Why |
+|---|---|---|
+| Receipt's own `key_directory` entry swapped, same `key_id` | **defeated** → VERIFIED | the real public key is merged back over the swap, so the untouched record's signature verifies again |
+| Forger signs with their own key and relabels it as our `key_id` | **defeated** → FAILED on `signature` | pinning restores the real key, which cannot verify the forger's signature |
+| Forger signs under a *different* `key_id` | **not defeated** → CooL reports `ok: true` | the ids do not collide, nothing is overridden, and the receipt is internally consistent |
+
+The third row is why the `key_id` allow-list is not redundant with pinning: the
+question "is this authentic?" and the question "is this *ours*?" need different
+checks. The first row is worth keeping in mind for the opposite reason — pinning
+also protects *us*, since without it an attacker who can edit a stored receipt
+could make authentic evidence fail verification and discredit a real audit.
+
 ---
 
 ## 8. Receipt size budget — CONFIRMED
@@ -478,7 +523,7 @@ Implications, which drive the architecture:
 | Target | `cool-nwc` main entry | Status |
 |---|---|---|
 | Node.js ≥ 20, local | record + verify | **CONFIRMED working** |
-| Vercel Node.js serverless functions | record + verify | **INFERRED — high confidence.** Zero `node:` imports in the reachable graph; only `globalThis.crypto.getRandomValues` and `process.env` (guarded by `typeof process !== "undefined"`), both present. `TODO`: confirm on a real deployment in Milestone 8. |
+| Vercel Node.js serverless functions | record + verify | **CONFIRMED working** on a real production deployment (Milestone 1). 29/29 HTTP checks passed at `https://veriaudit-alpha.vercel.app`, region `iad1`, **Node v24.19.0** — a different major version than the local v22.17.0 — and the identity-and-verdict fingerprint was **byte-identical** to local: same `mrtd`, same `key_id`, same 13-case tamper matrix. Evidence: `cool-proof/milestone1-vercel.txt`. |
 | Vercel Edge runtime | record + verify | **INFERRED possible, NOT CHOSEN.** No Node builtins needed and WebCrypto is available, but the vendor's `troubleshooting.md` says "browser/edge use is **not currently tested** — don't rely on it", and ML-DSA keygen is CPU-heavy against Edge CPU limits. |
 | Browser / client-side | record + verify | **CONFIRMED working** in Chromium: 162 ms record, 22 ms verify, tamper rejected, 230 KB bundle, `process` undefined. Contradicts the vendor's "untested" note — untested is not the same as broken. |
 | `cool-nwc/node` (`FileLog`) | filesystem log | Node only; on Vercel limited to ephemeral `/tmp`. **Not used.** |

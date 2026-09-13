@@ -12,7 +12,7 @@ import { CoolTee } from "cool-nwc/phala";
 import type { ReceiptV2 } from "cool-nwc";
 import { canonicalEventPayload, contentDigest } from "./canonical";
 import { APP_ID, IMAGE_DIGEST, SOFTWARE_NAME, SOFTWARE_VERSION } from "./config";
-import { newDstackClient, sealedKeys } from "./identity";
+import { assertIdentityMatchesPin, newDstackClient, sealedKeys } from "./identity";
 import {
   asMultihash,
   assertValidLogState,
@@ -89,6 +89,11 @@ export async function recordEvents(
   }
 
   const state = assertValidLogState(priorLogState);
+
+  // Refuse to seal under an identity nobody pinned. Memoised, so this costs
+  // nothing after the first call on a warm instance.
+  await assertIdentityMatchesPin();
+
   const connectStart = performance.now();
 
   const dstack = newDstackClient();

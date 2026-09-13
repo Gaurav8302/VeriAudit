@@ -3,6 +3,11 @@
 Derived from the repository inspection and from the SDK findings in
 `COOL_SDK_AUDIT.md`. Tags: `CONFIRMED` / `INFERRED` / `TODO` / `UNKNOWN`.
 
+> **Milestone 1 status.** The stack (§3), the no-database decision (§4), and the
+> CooL layer of the module map (§6) are built and proved on Vercel. The product
+> layers — audit engine, events, simulation, search, UI — are still planned.
+> `[M1]` in §6 marks what exists.
+
 ---
 
 ## 1. Repository inventory (before implementation)
@@ -135,9 +140,24 @@ demonstrates append-only structure **within a session**, sequenced by a
 client-held head. It is not an independently witnessed log — which the SDK
 already forces us to admit, since `witnesses` is permanently `absent`.
 
+**CONFIRMED in Milestone 1: no database is needed for the evidence path.** The
+`logState` round trip works exactly as inferred. Two stateless `recordEvents`
+calls, the second given only the first's ordered `binding_hash` list, produced
+leaves 4–8 of one nine-leaf tree; rehydrating from the stored list reproduced
+the previously signed root exactly; receipts sealed in the first call still
+verified after the tree grew; and an RFC 6962 consistency proof held for honest
+growth while failing when a historical entry was removed. Proved on Vercel as
+well as locally — `DEPLOYMENT.md` §11.
+
+One implementation detail this forced: `assertValidLogState` must reject
+malformed input loudly rather than defaulting to an empty tree. Silently
+starting over would convert a tampered history into a fresh, perfectly valid
+one — the failure mode the log exists to prevent.
+
 `TODO` (P1, only if the session model proves fragile in the Milestone 8 Vercel
 test): add Upstash Redis behind the same adapter interface. Deliberately deferred
 — it adds a provisioning step and env vars for a demo that does not need them.
+Nothing found in Milestone 1 argues for it.
 
 ---
 
@@ -213,26 +233,38 @@ Event manager
 
 ## 6. Module map
 
+`[M1]` exists as of Milestone 1; everything else is planned.
+
 ```text
 veriaudit/
 ├── app/
-│   ├── page.tsx                       onboarding / scenario picker
+│   ├── page.tsx                  [M1] developer proof page; becomes the scenario picker
+│   ├── layout.tsx                [M1]
 │   ├── audit/[auditId]/page.tsx       audit result + trail entry point
 │   ├── history/page.tsx               3-month activity feed + search + filters
 │   ├── trail/[executionId]/page.tsx   execution graph + evidence + verification
 │   └── api/
 │       ├── audit/run/route.ts         run audit, seal its events   (nodejs)
-│       ├── cool/verify/route.ts       verify a receipt              (nodejs)
-│       ├── cool/consistency/route.ts  append-only proof             (nodejs)
-│       └── cool/identity/route.ts     published key dir + measurement (nodejs)
+│       ├── cool/record/route.ts  [M1] seal canonical events         (nodejs)
+│       ├── cool/verify/route.ts  [M1] verify a receipt              (nodejs)
+│       ├── cool/identity/route.ts [M1] published key dir + measurement (nodejs)
+│       ├── cool/selftest/route.ts [M1] tamper matrix; proof-only    (nodejs)
+│       └── cool/consistency/route.ts  append-only proof             (nodejs)
 ├── lib/
-│   ├── cool/                          THE ONLY PLACE THAT IMPORTS cool-nwc
-│   │   ├── client.ts                  plane construction, sealed keyset
-│   │   ├── recorder.ts                VeriAudit event → RecordInput
-│   │   ├── verifier.ts                Verdict → IntegrityState
-│   │   ├── log-state.ts               rehydrate/persist the RFC 6962 tree
-│   │   ├── identity.ts                published key directory, expected measurement
-│   │   └── types.ts                   adapter-facing types
+│   ├── cool/                     [M1] THE ONLY PLACE THAT IMPORTS cool-nwc
+│   │   ├── index.ts              [M1] barrel; carries import "server-only"
+│   │   ├── config.ts             [M1] app id, image digest, log id, software identity
+│   │   ├── identity.generated.ts [M1] COMMITTED pin — measurement + key directory
+│   │   ├── identity.ts           [M1] pinned constants + live derivation + drift check
+│   │   ├── canonical.ts          [M1] VeriAudit event → canonical committed payload
+│   │   ├── recorder.ts           [M1] canonical payload → CooL receipt
+│   │   ├── verifier.ts           [M1] Verdict + trust policy → IntegrityState
+│   │   ├── log-state.ts          [M1] rehydrate/persist the RFC 6962 tree
+│   │   ├── key-directory.ts      [M1] SDK key-directory type re-exports
+│   │   └── types.ts              [M1] adapter-facing types, SDK-free
+│   ├── proof/                    [M1] proof fixtures + tamper matrix; not product code
+│   │   ├── sample-trail.ts       [M1] nine canonical events; replaced by lib/audit
+│   │   └── tamper.ts             [M1] the 13-case matrix, shared by tests and selftest
 │   ├── audit/
 │   │   ├── engine.ts                  deterministic control testing
 │   │   └── controls.ts                control definitions
@@ -252,14 +284,24 @@ veriaudit/
 │   └── store/
 │       └── session.ts                 IndexedDB receipts + log state
 ├── components/                        ui primitives + trail nodes + verdict panel
-├── tests/                             see TESTING_PLAN.md
-├── docs/                              this set
-├── cool-proof/                        committed SDK proof harnesses
-└── .env.example
+├── scripts/
+│   ├── cool-identity.ts          [M1] regenerates the committed pin
+│   └── proof-http.ts             [M1] 29-assertion HTTP proof, any base URL
+├── tests/
+│   └── cool-adapter.test.ts      [M1] 27 tests; see TESTING_PLAN.md
+├── docs/                         [M1] this set
+├── cool-proof/                   [M1] committed SDK proof harnesses + captured output
+└── .env.example                       TODO — nothing requires env yet
 ```
 
-**Rule** — nothing outside `lib/cool/` imports `cool-nwc`. Enforced by a test
-(guideline Rule 3).
+**Rule** — nothing outside `lib/cool/` imports `cool-nwc`. `CONFIRMED` enforced
+by a test that walks every `.ts`/`.tsx` file and fails on a stray import
+(guideline Rule 3). `lib/proof/`, `scripts/`, and `tests/` are exempt by name.
+
+`import "server-only"` sits in `lib/cool/index.ts` rather than in each module,
+so a client component importing the adapter fails the build while the unit tests
+can still import submodules directly under Vitest. `CONFIRMED` working: the
+client bundle is 104 kB first-load JS, with no post-quantum crypto in it.
 
 ---
 

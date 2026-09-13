@@ -109,25 +109,39 @@ export async function describeIdentity(): Promise<
  *
  * The failure mode this prevents: `COOL_IMAGE_DIGEST` drifts, every receipt is
  * sealed under a key and measurement nobody pinned, and every verification
- * reports FAILED for a reason that looks like tampering.
+ * reports FAILED for a reason that looks exactly like tampering. Better to fail
+ * at the first record, naming the real cause.
+ *
+ * Memoised — the check is deterministic, so once is enough per instance.
  */
-export async function assertIdentityMatchesPin(): Promise<void> {
-  const identity = await describeIdentity();
-  if (identity.pinned.matches && identity.trustedKeyIds.length > 0) {
-    const signerKnown = TRUSTED_RECORD_KEY_ID_SET.has(
-      Object.keys(identity.keyDirectory).find((id) => id.startsWith("cool-enclave-")) ?? "",
-    );
-    if (signerKnown) return;
+let pinCheck: Promise<void> | null = null;
+
+export function assertIdentityMatchesPin(): Promise<void> {
+  pinCheck ??= runPinCheck();
+  return pinCheck;
+}
+
+async function runPinCheck(): Promise<void> {
+  const client = newDstackClient();
+  const [info, keys] = await Promise.all([client.info(), sealedKeys()]);
+
+  const problems: string[] = [];
+  const differing = measurementDiff(info.measurement, EXPECTED_MEASUREMENT);
+  if (differing.length > 0) {
+    problems.push(`measurement differs from the pin in: ${differing.join(", ")}`);
   }
+  if (!TRUSTED_RECORD_KEY_ID_SET.has(keys.record.keyId)) {
+    problems.push(`record signing key '${keys.record.keyId}' is not in the allow-list`);
+  }
+  if (problems.length === 0) return;
+
   throw new Error(
     [
       "CooL identity drift: the live plane does not match lib/cool/identity.generated.ts.",
+      ...problems.map((p) => `  - ${p}`),
       `  live    applicationId=${APP_ID} imageDigest=${IMAGE_DIGEST}`,
       `  pinned  applicationId=${GENERATED_FOR.applicationId} imageDigest=${GENERATED_FOR.imageDigest}`,
-      identity.pinned.differingRegisters.length > 0
-        ? `  differing registers: ${identity.pinned.differingRegisters.join(", ")}`
-        : "  measurement matches, but the signing key id is not in the allow-list",
-      "  Fix: set COOL_IMAGE_DIGEST to the pinned value, or regenerate with `npm run cool:identity`.",
+      "  Fix: set COOL_IMAGE_DIGEST to the pinned value, or regenerate the pin with `npm run cool:identity`.",
     ].join("\n"),
   );
 }

@@ -27,3 +27,6 @@ cool-proof/.playwright-mcp/
 .cool/
 coverage/
 *.tsbuildinfo
+
+.vercel
+.env*

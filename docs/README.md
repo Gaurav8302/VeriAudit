@@ -133,10 +133,29 @@ required content; `COOL_SDK_AUDIT.md`, `EVENT_MODEL.md`, `SIMULATION_SPEC.md`,
 
 | Item | Type | Where it is resolved |
 |---|---|---|
-| `cool-nwc` on Vercel's Node runtime | `INFERRED`, the only unproven link | Milestone 1, hour 1 |
-| Cold-start and per-record timing on Vercel | `UNKNOWN` | Milestone 8 |
+| ~~`cool-nwc` on Vercel's Node runtime~~ | **`CONFIRMED`** — was the only unproven link | **Resolved in Milestone 1**: 29/29 checks, byte-identical fingerprint. `DEPLOYMENT.md` §11 |
+| ~~Cold-start and per-record timing on Vercel~~ | **`CONFIRMED`** | **Resolved in Milestone 1**: 291 ms connect, 35.9 ms/record in `iad1` |
 | Hardware attestation, witnesses, anchoring | `UNKNOWN`, P2 | out of scope; never claimed |
 | `npx cool-nwc verify` on a downloaded receipt | `UNKNOWN`, P1 | Milestone 9 stretch |
 | Upstream report of the `software.digest` bug | `TODO` | after the build |
+| Behaviour under concurrent requests on Vercel | `UNKNOWN` | Milestone 8; the Milestone 1 proof is single-request |
 
 No contradiction remains unresolved.
+
+---
+
+## Milestone 1 corrections
+
+Implementation contradicted the documentation in two places. Both are corrected
+in place rather than quietly dropped:
+
+1. **Tamper case 16 wording.** `COOL_SDK_AUDIT.md` §6 said "drop both
+   `inclusion` and `sth`" yields `ok: true`. The harness actually assigned
+   `null`; *deleting* the keys fails the SDK's structural validator instead. The
+   security gap is real and unchanged — the `null` variant is the one an attacker
+   would pick — but the mechanism is now stated precisely, and identified as the
+   same `undefined`-vs-`null` asymmetry as the `software.digest` bug (§7.1).
+2. **Key substitution was expected to fail verification.** It does not, and
+   should not: pinning merges the real key back over the substituted one, so a
+   genuine receipt still verifies. `COOL_SDK_AUDIT.md` §7.6 now sets out all
+   three key-substitution cases and which defence covers each.

@@ -99,7 +99,7 @@ No secrets. Nothing here is sensitive, so the same values are safe in
 | Variable | Value | Scope | Required | Purpose |
 |---|---|---|---|---|
 | `COOL_APP_ID` | `veriaudit` | server | no (defaults in code) | CooL `applicationId` |
-| `COOL_IMAGE_DIGEST` | `sha256:veriaudit-r2-v1` | server | **yes** | seeds the simulated measurement. **Must match the value used to generate `lib/cool/identity.ts`**, or `expectedMeasurement` pinning and the `key_id` allow-list will reject every receipt |
+| `COOL_IMAGE_DIGEST` | `sha256:veriaudit-r2-v1` | server | no — **the default is the pinned value** | seeds the simulated measurement. **Must match the value `lib/cool/identity.generated.ts` was generated against**, or `expectedMeasurement` pinning and the `key_id` allow-list will reject every receipt. `CONFIRMED`: a bare Vercel deployment with no env vars verifies correctly |
 | `COOL_LOG_ID` | `veriaudit-log` | server | no | recorded in every STH |
 | `COOL_DSTACK_ENDPOINT` | **must be unset** | server | — | `CONFIRMED`: if set, the provider resolves to `dstack` even without `attestation.provider`, and every request fails with `DstackUnavailableError` |
 | `NEXT_PUBLIC_APP_VERSION` | e.g. `0.1.0` | client | no | shown in the UI and in `software.version` |
@@ -124,20 +124,28 @@ NEXT_PUBLIC_APP_VERSION=0.1.0
 
 ### The identity coupling
 
-`lib/cool/identity.ts` holds `PUBLISHED_KEY_DIRECTORY`, `TRUSTED_KEY_IDS`, and
-`EXPECTED_MEASUREMENT` as committed constants. They are generated **once** by a
-script against a fixed `COOL_IMAGE_DIGEST`:
+`lib/cool/identity.generated.ts` holds `PUBLISHED_KEY_DIRECTORY`,
+`TRUSTED_RECORD_KEY_IDS`, `TRUSTED_LOG_KEY_IDS`, and `EXPECTED_MEASUREMENT` as
+committed constants, generated **once** against a fixed `COOL_IMAGE_DIGEST`:
 
 ```sh
 COOL_IMAGE_DIGEST=sha256:veriaudit-r2-v1 npm run cool:identity
 ```
 
 This is safe to commit — they are public keys and public measurements, derived
-deterministically with no secret. But it creates a hard rule: **changing
-`COOL_IMAGE_DIGEST` in production without regenerating `identity.ts` breaks all
-verification.** A startup assertion compares the live
-`cool.environment.measurement` against `EXPECTED_MEASUREMENT` and logs loudly on
-mismatch, so this fails visibly in dev rather than silently in the demo.
+deterministically with no secret.
+
+Committing them is also the *point*, not merely a convenience: a pin derived at
+runtime from the same variable it is meant to police would prove nothing, since
+anyone who can set `COOL_IMAGE_DIGEST` would move the pin along with the
+receipts. The committed file is the trust anchor precisely because an
+environment variable cannot move it.
+
+The hard rule that follows: **changing `COOL_IMAGE_DIGEST` in production without
+regenerating the pin breaks all verification.** `assertIdentityMatchesPin()`
+compares the live measurement and signing-key id against the committed values
+and throws with the offending registers named, and `GET /api/cool/identity`
+reports `pin.matches`, so drift fails visibly rather than silently in the demo.
 
 ---
 
@@ -192,7 +200,7 @@ npm run dev            # http://localhost:3000
 
 ```sh
 npm run cool:proof     # run the SDK proof harnesses (real record + verify)
-npm run cool:identity  # regenerate lib/cool/identity.ts
+npm run cool:identity  # regenerate lib/cool/identity.generated.ts
 npm run typecheck
 npm test
 ```
@@ -208,7 +216,7 @@ needs network; nothing else does.
 |---|---|
 | Fresh browser, no cache | starts at Stage 1 and regenerates the corpus; receipts are created live in Stage 3. Nothing to have lost |
 | Reload mid-demo | corpus regenerates identically (seeded); receipts and `logState` are restored from IndexedDB |
-| Cold function start | ~102 ms extra for key derivation, then ~17 ms/record. `INFERRED` from local measurement; `TODO` confirm on Vercel |
+| Cold function start | **CONFIRMED on Vercel** (`iad1`): 291 ms plane connect, then 35.9 ms/record — 9 events sealed in 323 ms. Locally the same build is 72 ms connect / 25.1 ms per record, so Vercel is ~1.4–4× slower but comfortably inside budget |
 | Two concurrent judges | independent sessions. Same signing identity (deterministic keys), separate trees — correct and expected |
 | Function timeout | 9 `record()` calls ≈ 150 ms, far inside the default 10 s limit |
 | IndexedDB blocked / private mode | receipts fall back to in-memory for the session; verification still works until reload. Surfaced as *"receipt not in this session"*, never as a verification failure |
@@ -220,10 +228,9 @@ needs network; nothing else does.
 
 Per guideline §4 Phase 8 — deploy early enough to discover runtime problems.
 
-1. **Milestone 1 (hour 1).** Push the repo and deploy a skeleton with only
-   `/api/cool/identity` + one route that records and verifies a single event.
-   This proves `cool-nwc` runs on Vercel's Node runtime **before** any UI exists.
-   If it fails, everything else waits.
+1. **Milestone 1 (hour 1). DONE — see §11.** Deployed a skeleton with
+   `/api/cool/identity`, `/record`, `/verify`, and `/selftest`, proving
+   `cool-nwc` runs on Vercel's Node runtime **before** any UI existed.
 2. **Milestones 2–7.** Every push auto-deploys to a preview URL.
 3. **Milestone 8 (hour 7).** Full production verification against the checklist
    below.
@@ -231,21 +238,33 @@ Per guideline §4 Phase 8 — deploy early enough to discover runtime problems.
 
 ### Deployment checklist
 
+Items marked `[x]` were confirmed on the Milestone 1 production deployment.
+
 ```text
-[ ] npm install succeeds on Vercel (no native build)
-[ ] Node 22.x runtime in use
-[ ] COOL_IMAGE_DIGEST set and matching identity.ts
-[ ] COOL_DSTACK_ENDPOINT is NOT set
-[ ] /api/cool/identity returns the expected key ids and measurement
-[ ] POST /api/audit/run returns 9 receipts
-[ ] POST /api/cool/verify returns ok: true for a real receipt
-[ ] POST /api/cool/verify returns ok: false for a mutated receipt
-[ ] inclusion status is "pass" (not "absent") on production receipts
-[ ] full demo path works in a clean browser (see TESTING_PLAN.md)
-[ ] cold-start timing acceptable
-[ ] no secrets in the repo; .env.example present
-[ ] cool-sdk/ is git-ignored and not in the build
+[x] npm install succeeds on Vercel (no native build)
+[x] Node runtime in use — Vercel served Node v24.19.0
+[x] COOL_IMAGE_DIGEST matches identity.generated.ts
+[x] COOL_DSTACK_ENDPOINT is NOT set (/api/cool/identity reports no warnings)
+[x] /api/cool/identity returns the expected key ids and measurement
+[x] POST /api/cool/record returns 9 receipts
+[x] POST /api/cool/verify returns ok: true for a real receipt
+[x] POST /api/cool/verify returns ok: false for a mutated receipt
+[x] inclusion status is "pass" (not "absent") on production receipts
+[x] cold-start timing acceptable (291 ms connect + 36 ms/record)
+[x] no secrets in the repo
+[x] cool-sdk/ is git-ignored and excluded from the build (.vercelignore)
+[ ] POST /api/audit/run returns 9 receipts          — Milestone 2
+[ ] full demo path works in a clean browser         — Milestone 8
+[ ] .env.example present                            — TODO, no env is required yet
 ```
+
+**No environment variables are required.** The defaults in `lib/cool/config.ts`
+(`veriaudit`, `sha256:veriaudit-r2-v1`, `veriaudit-log`) are exactly the values
+`identity.generated.ts` was built against, so a bare deployment with zero
+configuration produces receipts that verify against the committed pin. This was
+deliberate: an unset variable on Vercel is a likely failure, and the safe path
+should be the default one. Setting `COOL_IMAGE_DIGEST` to anything else makes
+every verification fail on the measurement check, by design.
 
 ---
 
@@ -253,9 +272,55 @@ Per guideline §4 Phase 8 — deploy early enough to discover runtime problems.
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| `cool-nwc` behaves differently on Vercel's Node runtime than locally | **high** — this is the only `INFERRED` link in the chain | tested in Milestone 1, hour 1, before any UI |
+| ~~`cool-nwc` behaves differently on Vercel's Node runtime than locally~~ | **RESOLVED — CONFIRMED identical.** Was the only `INFERRED` link in the chain | Proved in Milestone 1 before any UI existed: 29/29 checks, byte-identical fingerprint, on Node v24 vs local v22. See §11 |
 | ESM-only package trips the Next server bundle | medium | Next 15 handles ESM; `moduleResolution: "bundler"`; caught at build time |
-| `COOL_IMAGE_DIGEST` drift breaks verification | medium | startup assertion + a test comparing the live measurement to `identity.ts` |
+| `COOL_IMAGE_DIGEST` drift breaks verification | medium | `CONFIRMED` mitigated: `assertIdentityMatchesPin()` + test C1 compares the live measurement and key id to `identity.generated.ts`; `/api/cool/identity` reports `pin.matches` |
 | Bundle bloat from `@noble/post-quantum` leaking client-side | medium | `import "server-only"` in `lib/cool/`; a test asserts no client component imports `cool-nwc` |
-| Cold-start latency degrades the audit stage | low | ~102 ms; the staged UI absorbs it |
+| Cold-start latency degrades the audit stage | low | CONFIRMED 291 ms on Vercel; the staged UI absorbs it |
 | IndexedDB unavailable | low | in-memory fallback, honestly labelled |
+| Deployment Protection hides the API behind an HTML login page | low, but it bites | CONFIRMED: the hashed deployment URL is protected and returns HTML, while the project alias `veriaudit-alpha.vercel.app` is public. Test against the **alias**, and check for HTML before parsing JSON |
+
+---
+
+## 11. Vercel proof — CONFIRMED (Milestone 1)
+
+The one `INFERRED` link in the chain is now a measured fact.
+
+**Deployment:** `https://veriaudit-alpha.vercel.app` (project `veriaudit`,
+production, region `iad1`, deployment `dpl_Hv2spYjXgaENiHk3k6yLU5N9GSve`).
+
+`scripts/proof-http.ts` runs 29 assertions against any base URL. The same
+script was run against the local production build (`next build && next start`)
+and against Vercel. Captured output:
+
+```text
+cool-proof/milestone1-local.txt    29/29 checks passed
+cool-proof/milestone1-vercel.txt   29/29 checks passed
+```
+
+The values that must not vary by host were **byte-identical**:
+
+| | Local | Vercel |
+|---|---|---|
+| `cool-nwc` | 3.0.0 | 3.0.0 |
+| Node | v22.17.0 | **v24.19.0** |
+| `mrtd` | `hex:8b4c0790664bfceb…` | identical |
+| record `key_id` | `cool-enclave-8b4c079066` | identical |
+| identity pin matches | true | true |
+| tree size / leaf order | 9 / `0..8` | identical |
+| genuine receipt | VERIFIED | VERIFIED |
+| 13-case tamper matrix | `T1:VERIFIED,T2:FAILED,…` | identical |
+| receipt size | 29,503 bytes | 29,503 bytes |
+
+The Node major version differs (v22 local, v24 on Vercel) and the results still
+match, which makes the claim stronger than a same-version comparison would: the
+SDK's behaviour does not depend on the Node version in the range we care about.
+
+The root hash differs between runs on **both** hosts, and must — `randomSalt()`
+draws fresh bytes per record, so the same nine logical events build a different
+tree every time (`COOL_SDK_AUDIT.md` §7.2). The harness separates "must match"
+from "expected to differ" so this cannot be misread as a mismatch.
+
+What this does **not** prove: that a `dstack` hardware provider would work on
+Vercel (it cannot — §2), or that behaviour holds under concurrency. The proof
+covers a single request at a time.

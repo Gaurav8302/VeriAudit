@@ -13,6 +13,7 @@ import {
   EXPECTED_MEASUREMENT,
   GENERATED_FOR,
   TRUSTED_RECORD_KEY_IDS,
+  assertIdentityMatchesPin,
   describeIdentity,
   sealedKeys,
 } from "@/lib/cool/identity";
@@ -60,6 +61,10 @@ describe("C0 — package and identity", () => {
     const identity = await describeIdentity();
     expect(identity.hardware).toBe(false);
     expect(identity.runtimeMode).toBe("simulated");
+  });
+
+  it("C1c — the pin assertion passes for the configured plane", async () => {
+    await expect(assertIdentityMatchesPin()).resolves.toBeUndefined();
   });
 });
 
