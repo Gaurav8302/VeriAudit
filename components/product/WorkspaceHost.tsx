@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { asWorkspaceAudit } from "@/lib/product/localWorkspace";
+import { asWorkspaceAudit, isSampleAudit } from "@/lib/product/localWorkspace";
 import { isStudioWorkspace } from "@/lib/product/pageMeta";
 import { domainLabel, type WorkspaceAudit } from "@/lib/product/workspace";
 import { ExecutionSwitcher } from "./ExecutionSwitcher";
@@ -29,8 +30,17 @@ export function WorkspaceHost({
   const local = workspace.localAudit(auditId);
   const audit = catalogAudit ?? (local ? asWorkspaceAudit(local, workspace.state) : null);
 
+  useEffect(() => {
+    if (!workspace.ready || !isSampleAudit(auditId) || local) return;
+    workspace.ensureSample();
+  }, [auditId, local, workspace]);
+
   if (!workspace.ready && !catalogAudit) {
     return <p className="va-empty">Loading workspace…</p>;
+  }
+
+  if (isSampleAudit(auditId) && !local) {
+    return <p className="va-empty">Opening sample audit…</p>;
   }
 
   if (!audit) {

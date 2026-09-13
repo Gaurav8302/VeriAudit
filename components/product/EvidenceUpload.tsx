@@ -145,7 +145,7 @@ export function EvidenceUpload({
       )}
       <div className="va-actions">
         <label className="va-btn">
-          {busy ? "Working…" : "Upload evidence"}
+          {busy ? "Working…" : "+ Add evidence"}
           <input
             type="file"
             accept=".pdf,.csv,.xlsx,.txt,.json"
@@ -158,9 +158,16 @@ export function EvidenceUpload({
             }}
           />
         </label>
-        <button type="button" className="va-btn va-btn-primary" disabled={busy} onClick={() => void useSamples()}>
-          Try with sample audit data
-        </button>
+        {compact && evidence.length > 0 ? null : (
+          <button
+            type="button"
+            className="va-btn va-btn-primary"
+            disabled={busy}
+            onClick={() => void useSamples()}
+          >
+            {busy ? "Attaching…" : "Use sample evidence"}
+          </button>
+        )}
       </div>
       {note ? <p className="va-empty">{note}</p> : null}
       {error ? <p className="va-empty">{error}</p> : null}

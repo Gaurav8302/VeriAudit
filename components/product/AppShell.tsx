@@ -12,6 +12,13 @@ const PRIMARY = [
   { href: "/product/audits/new", label: "Create Audit", exact: true },
 ] as const;
 
+const STUDIO_PRIMARY = PRIMARY.filter((item) => item.label !== "Create Audit");
+
+const SECONDARY = [
+  { href: "/product/evidence", label: "Evidence" },
+  { href: "/product/executions", label: "Activity" },
+] as const;
+
 const INVESTIGATION = [
   { href: "/product/evidence", label: "Evidence" },
   { href: "/product/findings", label: "Findings" },
@@ -36,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <BrandMark href="/product" variant="compact" />
         <nav className="va-nav">
           <p className="va-group">Primary</p>
-          {PRIMARY.map((item) => (
+          {(studio ? STUDIO_PRIMARY : PRIMARY).map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -45,7 +52,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {item.label}
             </Link>
           ))}
-          {studio ? null : (
+          {studio ? (
+            <>
+              <p className="va-group">Secondary</p>
+              {SECONDARY.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active(pathname, item.href) ? "va-link is-active" : "va-link"}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </>
+          ) : (
             <>
               <p className="va-group">Investigation</p>
               {INVESTIGATION.map((item) => (

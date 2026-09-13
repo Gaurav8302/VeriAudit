@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Term } from "@/components/product/Term";
+import { FindingDetailGate } from "@/components/product/FindingDetailGate";
 import { LocalFindingDetail } from "@/components/product/LocalRecordDetail";
 import { executionHref, executionTraceHref } from "@/lib/product/lineage";
 import { loadAuditWorkspace } from "@/lib/product/load";
@@ -19,7 +20,7 @@ export default async function FindingDetailPage({
   }
 
   return (
-    <>
+    <FindingDetailGate auditId={auditId} findingId={findingId}>
       <p className="va-crumb">
         <Link href={`/product/audits/${auditId}/findings`}>← Findings</Link>
       </p>
@@ -134,6 +135,6 @@ export default async function FindingDetailPage({
         </Link>{" "}
         to walk the recorded causal path.
       </p>
-    </>
+    </FindingDetailGate>
   );
 }

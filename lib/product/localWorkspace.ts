@@ -23,6 +23,8 @@ import {
 
 export const WORKSPACE_STORAGE_KEY = "veriaudit.product.workspace.v1";
 export const REOPEN_STORAGE_KEY = "veriaudit.product.reopens.v1";
+export const SAMPLE_AUDIT_ID = "AUD-SAMPLE-FIN";
+export const SAMPLE_EXECUTION_ID = "EXEC-SAMPLE-FIN-001";
 
 export type FindingSeverity = "low" | "medium" | "high" | "critical";
 export type FindingLife = "open" | "under_review" | "resolved";
@@ -314,6 +316,116 @@ function setExtras(state: WorkspaceState, auditId: string, extras: readonly Prod
     extras: { ...state.extras, [auditId]: extras },
     selected: selectedId ? { ...state.selected, [auditId]: selectedId } : state.selected,
   };
+}
+
+export function isSampleAudit(auditId: string): boolean {
+  return auditId === SAMPLE_AUDIT_ID;
+}
+
+function sampleExecutionIds(state: WorkspaceState): Set<string> {
+  return new Set([
+    SAMPLE_EXECUTION_ID,
+    ...(state.extras[SAMPLE_AUDIT_ID] ?? []).map((item) => item.executionId),
+  ]);
+}
+
+export function stripSampleWorkspace(state: WorkspaceState): WorkspaceState {
+  const sampleExecs = sampleExecutionIds(state);
+  return {
+    ...state,
+    audits: state.audits.filter((item) => item.auditId !== SAMPLE_AUDIT_ID),
+    extras: Object.fromEntries(
+      Object.entries(state.extras).filter(([auditId]) => auditId !== SAMPLE_AUDIT_ID),
+    ),
+    evidence: state.evidence.filter((item) => item.auditId !== SAMPLE_AUDIT_ID),
+    findings: state.findings.filter((item) => item.auditId !== SAMPLE_AUDIT_ID),
+    activities: state.activities.filter((item) => item.auditId !== SAMPLE_AUDIT_ID),
+    messages: state.messages.filter((item) => item.auditId !== SAMPLE_AUDIT_ID),
+    actions: state.actions.filter((item) => item.auditId !== SAMPLE_AUDIT_ID),
+    selected: Object.fromEntries(
+      Object.entries(state.selected).filter(([auditId]) => auditId !== SAMPLE_AUDIT_ID),
+    ),
+    seals: Object.fromEntries(
+      Object.entries(state.seals).filter(([executionId]) => !sampleExecs.has(executionId)),
+    ),
+  };
+}
+
+export function createSampleWorkspace(
+  state: WorkspaceState,
+  createdAt = new Date().toISOString(),
+): { state: WorkspaceState; audit: LocalAudit; execution: ProductExecution } {
+  const clean = stripSampleWorkspace(state);
+  const audit: LocalAudit = {
+    auditId: SAMPLE_AUDIT_ID,
+    title: "September Revenue Recognition Audit",
+    domain: "financial",
+    description: "Review Q3 revenue recognition against REV-REC-01.",
+    reference: "REV-REC-01",
+    createdAt,
+    status: "open",
+    origin: "local",
+    period: "2026-09",
+  };
+  const execution: ProductExecution = {
+    executionId: SAMPLE_EXECUTION_ID,
+    auditId: SAMPLE_AUDIT_ID,
+    sequence: 1,
+    label: "Execution 001",
+    createdAt,
+    status: "open",
+    parentExecutionId: null,
+    eventCount: 0,
+    findingCount: 0,
+    hasEngineTrail: false,
+    immutable: false,
+  };
+  const next = withActivity(
+    {
+      ...clean,
+      audits: [...clean.audits, audit],
+      extras: { ...clean.extras, [SAMPLE_AUDIT_ID]: [execution] },
+      selected: { ...clean.selected, [SAMPLE_AUDIT_ID]: SAMPLE_EXECUTION_ID },
+    },
+    {
+      auditId: SAMPLE_AUDIT_ID,
+      executionId: SAMPLE_EXECUTION_ID,
+      type: "execution.opened",
+      title: "Execution opened",
+      detail: `${execution.label} started for ${audit.title}`,
+      subjectId: SAMPLE_EXECUTION_ID,
+      occurredAt: createdAt,
+    },
+  );
+  return { state: next, audit, execution };
+}
+
+export function ensureSampleWorkspace(state: WorkspaceState): {
+  state: WorkspaceState;
+  audit: LocalAudit;
+  execution: ProductExecution;
+  created: boolean;
+} {
+  const existing = getLocalAudit(state, SAMPLE_AUDIT_ID);
+  const selected = selectedExecutionId(state, SAMPLE_AUDIT_ID);
+  const executions = executionsOf(state, SAMPLE_AUDIT_ID);
+  const current =
+    executions.find((item) => item.executionId === selected) ??
+    executions.find((item) => item.executionId === SAMPLE_EXECUTION_ID) ??
+    executions[0] ??
+    null;
+  if (existing && current) {
+    return { state, audit: existing, execution: current, created: false };
+  }
+  const created = createSampleWorkspace(state);
+  return { ...created, created: true };
+}
+
+export function resetSampleWorkspace(
+  state: WorkspaceState,
+  createdAt?: string,
+): { state: WorkspaceState; audit: LocalAudit; execution: ProductExecution } {
+  return createSampleWorkspace(state, createdAt);
 }
 
 export function createAudit(

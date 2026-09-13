@@ -41,10 +41,10 @@ export function SealPanel({
 
   return (
     <section className={compact ? "va-seal is-compact" : "va-seal"}>
-      <p className="va-kicker">Execution trust</p>
+      <p className="va-kicker">{verified || trust.seal ? "Cryptographic evidence" : "Ready to seal"}</p>
       {verified ? (
         <>
-          <h2>✓ Sealed · Verified</h2>
+          <h2>✓ CRYPTOGRAPHICALLY VERIFIED</h2>
           <p>{execution.label}. CooL receipts match the recorded execution.</p>
           <ul className="va-crypto">
             <li>ML-DSA-65</li>
@@ -57,28 +57,31 @@ export function SealPanel({
         </>
       ) : failed ? (
         <>
-          <h2>Sealed · Not verified</h2>
+          <h2>Verification failed</h2>
           <p>{trust.verification?.claim ?? "The server did not confirm this execution."}</p>
         </>
       ) : trust.seal ? (
         <>
-          <h2>✓ Sealed</h2>
+          <h2>✓ SEALED</h2>
           <p>
-            {execution.label}. CooL receipts created. Verification is decided by
-            the server, not this page.
+            {execution.label}. Cryptographic evidence created.
+            Verification is decided by the server, not this page.
           </p>
+          <ul className="va-crypto">
+            <li>ML-DSA-65</li>
+            <li>Ed25519</li>
+            <li>Merkle inclusion proof</li>
+            <li>Measurement pinning</li>
+            <li>Trusted signing key</li>
+            <li>Append-only history</li>
+          </ul>
         </>
       ) : execution.status === "closed" ? (
         <>
-          <h2>Seal {execution.label}</h2>
-          <p>Sealing creates cryptographic evidence for this recorded execution.</p>
+          <h2>READY TO SEAL</h2>
+          <p>The execution is complete and required human reviews have been recorded.</p>
         </>
-      ) : (
-        <>
-          <h2>Unsealed</h2>
-          <p>Work stays live until this execution is closed. AI actions are recorded, not sealed.</p>
-        </>
-      )}
+      ) : null}
 
       {confirm && !trust.seal ? (
         <div className="va-seal-confirm">
@@ -147,7 +150,7 @@ export function SealPanel({
       {details && trust.verification ? (
         <div className="va-trust-panel">
           <h3>
-            {verified ? "Cryptographically verified" : failed ? "Verification failed" : "Verification"}
+            {verified ? "✓ CRYPTOGRAPHICALLY VERIFIED" : failed ? "Verification failed" : "Verification"}
           </h3>
           <ul className="va-trust-list">
             <CheckRow ok={trust.verification.checks.receiptAuthenticity} label="Receipt authenticity" />

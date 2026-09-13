@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { findingReviewLabel, isWritableExecution } from "@/lib/product/localWorkspace";
+import { useMemo, useState } from "react";
+import {
+  findingReviewLabel,
+  isWritableExecution,
+  type LocalFinding,
+} from "@/lib/product/localWorkspace";
 import type { AiChatMessage, ProposedAction } from "@/lib/ai/types";
 import { domainLabel } from "@/lib/product/workspace";
 import { EvidenceUpload } from "./EvidenceUpload";
@@ -40,6 +44,90 @@ function actionKind(type: string): string {
   return type.replace(/_/g, " ");
 }
 
+function FindingCard({
+  auditId,
+  executionLabel,
+  finding,
+  evidenceTitles,
+  recorded,
+  reviewRecorded,
+  writable,
+  onReview,
+  reviewError,
+}: {
+  auditId: string;
+  executionLabel: string;
+  finding: LocalFinding;
+  evidenceTitles: readonly string[];
+  recorded: boolean;
+  reviewRecorded: boolean;
+  writable: boolean;
+  onReview: (findingId: string, review: "accepted" | "rejected") => void;
+  reviewError: string | null;
+}) {
+  const complete = finding.review !== "pending";
+  const accepted = finding.review === "accepted";
+
+  return (
+    <article className={`va-finding-card${complete ? " is-complete" : ""}`}>
+      <p className="va-kicker">{complete ? "Human review complete" : "Proposed finding"}</p>
+      <h3>
+        {finding.findingId}
+        <span>{finding.title}</span>
+      </h3>
+      <p className="va-finding-severity">{finding.severity.toUpperCase()}</p>
+      {finding.description ? <p>{finding.description}</p> : null}
+      {evidenceTitles.length > 0 ? (
+        <ul className="va-finding-evidence">
+          {evidenceTitles.map((title) => (
+            <li key={title}>✓ {title}</li>
+          ))}
+        </ul>
+      ) : null}
+      {complete ? (
+        <div className="va-review-state is-done">
+          <strong>✓ HUMAN REVIEW COMPLETE</strong>
+          <p>
+            {finding.findingId} · {accepted ? "Accepted" : findingReviewLabel(finding.review)}
+          </p>
+          {reviewRecorded ? <p className="meta">Recorded to execution · {executionLabel}</p> : null}
+          <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>View event</Link>
+        </div>
+      ) : (
+        <div className="va-review-state">
+          <strong>HUMAN REVIEW REQUIRED</strong>
+          <p>The AI proposed this finding. A human must review it before the execution can be sealed.</p>
+          {writable ? (
+            <div className="va-actions">
+              <button
+                type="button"
+                className="va-btn va-btn-primary"
+                data-testid="accept-finding"
+                onClick={() => onReview(finding.findingId, "accepted")}
+              >
+                Accept finding
+              </button>
+              <button
+                type="button"
+                className="va-btn"
+                data-testid="dismiss-finding"
+                onClick={() => onReview(finding.findingId, "rejected")}
+              >
+                Dismiss
+              </button>
+              <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>Review details</Link>
+            </div>
+          ) : (
+            <p className="va-empty">This execution is closed. Human review belongs on an active run.</p>
+          )}
+          {reviewError ? <p className="va-empty">{reviewError}</p> : null}
+        </div>
+      )}
+      {recorded ? <p className="meta">● Recorded to execution · {executionLabel}</p> : null}
+    </article>
+  );
+}
+
 export function AiWorkspace({
   auditId,
   compact = false,
@@ -57,11 +145,8 @@ export function AiWorkspace({
   const messages = executionId ? workspace.messages(auditId, executionId) : [];
   const actions = executionId ? workspace.actions(auditId, executionId) : [];
   const findings = executionId ? workspace.findings(auditId, executionId) : [];
-  const uploads = executionId
-    ? workspace
-        .activities(auditId, executionId)
-        .filter((item) => item.type === "evidence.uploaded" || item.type === "evidence.added")
-    : [];
+  const activities = executionId ? workspace.activities(auditId, executionId) : [];
+  const uploads = activities.filter((item) => item.type === "evidence.uploaded" || item.type === "evidence.added");
   const local = workspace.localAudit(auditId);
   const audit = workspace.audits.find((item) => item.auditId === auditId);
   const auditTitle = local?.title ?? audit?.title;
@@ -69,11 +154,16 @@ export function AiWorkspace({
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const [openAction, setOpenAction] = useState<string | null>(null);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
-  const pendingFindings = findings.filter((item) => item.origin === "ai" && item.review === "pending");
   const latestAssistant = [...messages].reverse().find((item) => item.role === "assistant") ?? null;
+  const latestAssistantId = latestAssistant?.messageId ?? null;
   const fill = studio || compact;
+  const evidenceTitles = useMemo(
+    () => Object.fromEntries(evidence.map((item) => [item.artifactId, item.title])),
+    [evidence],
+  );
 
   async function ask(nextPrompt = prompt) {
     if (!execution || !writable) return;
@@ -125,6 +215,7 @@ export function AiWorkspace({
         }[];
       };
       if (!response.ok) throw new Error(payload.error ?? "AI analysis is temporarily unavailable.");
+      setRunning("Recording analysis");
       workspace.applyAiTurn({
         auditId,
         executionId: execution.executionId,
@@ -153,6 +244,15 @@ export function AiWorkspace({
     }
   }
 
+  function reviewFinding(findingId: string, review: "accepted" | "rejected") {
+    try {
+      workspace.reviewFinding(findingId, review);
+      setReviewError(null);
+    } catch (cause) {
+      setReviewError(cause instanceof Error ? cause.message : "Human review could not be recorded.");
+    }
+  }
+
   if (!execution) {
     return <p className="va-empty">Create an execution before asking the assistant.</p>;
   }
@@ -163,36 +263,68 @@ export function AiWorkspace({
         <div className="va-assistant-empty">
           <p className="va-kicker">AI audit assistant</p>
           <h2>What should we investigate?</h2>
-          <p>
-            {evidence.length === 0
-              ? "Give evidence to the AI auditor, then ask it to begin."
-              : "Ask VeriAudit to review the evidence attached to this execution."}
-          </p>
-          {writable ? (
-            <div className="va-starters">
-              {STARTERS.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  className="va-chip"
-                  disabled={busy}
-                  onClick={() => {
-                    setPrompt(item.prompt);
-                    void ask(item.prompt);
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+          {evidence.length === 0 ? (
+            <>
+              <p>Give evidence to the AI auditor, then ask it to begin.</p>
+              {writable ? (
+                <EvidenceUpload
+                  auditId={auditId}
+                  executionId={execution.executionId}
+                  compact
+                  onDone={() => setEvidenceOpen(false)}
+                />
+              ) : (
+                <p className="va-empty">This execution is closed. New AI work belongs on a later run.</p>
+              )}
+            </>
           ) : (
-            <p className="va-empty">This execution is closed. New AI work belongs on a later run.</p>
+            <>
+              <p>{evidence.length} evidence artifact{evidence.length === 1 ? "" : "s"} available</p>
+              <ul className="va-evidence-ready">
+                {evidence.map((item) => (
+                  <li key={item.artifactId}>✓ {item.title}</li>
+                ))}
+              </ul>
+              {writable ? (
+                <div className="va-actions">
+                  <button
+                    type="button"
+                    className="va-btn va-btn-primary"
+                    disabled={busy}
+                    onClick={() => void ask("Review the uploaded revenue evidence.")}
+                  >
+                    Ask AI to review
+                  </button>
+                </div>
+              ) : (
+                <p className="va-empty">This execution is closed. New AI work belongs on a later run.</p>
+              )}
+              {writable ? (
+                <div className="va-starters">
+                  {STARTERS.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className="va-chip"
+                      disabled={busy}
+                      onClick={() => {
+                        setPrompt(item.prompt);
+                        void ask(item.prompt);
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </>
           )}
         </div>
       ) : (
         <ol className="va-chat">
           {messages.map((item) => {
             const provider = providerLabel(item.provider);
+            const showFindings = item.role === "assistant" && item.messageId === latestAssistantId;
             return (
               <li key={item.messageId} className={item.role === "user" ? "is-user" : "is-assistant"}>
                 <strong>{item.role === "user" ? "You" : "VeriAudit"}</strong>
@@ -211,7 +343,6 @@ export function AiWorkspace({
                       {item.model && item.model !== "unknown" && item.provider && item.provider !== "mock"
                         ? ` · ${item.model}`
                         : ""}
-                      {" · Recorded to execution · Unsealed"}
                     </span>
                     {item.references.length > 0 ? (
                       <ul className="va-ref-list">
@@ -224,6 +355,30 @@ export function AiWorkspace({
                         ))}
                       </ul>
                     ) : null}
+                    {showFindings
+                      ? findings.map((finding) => (
+                          <FindingCard
+                            key={finding.findingId}
+                            auditId={auditId}
+                            executionLabel={execution.label}
+                            finding={finding}
+                            evidenceTitles={finding.evidenceIds
+                              .map((id) => evidenceTitles[id])
+                              .filter((title): title is string => Boolean(title))}
+                            recorded={activities.some(
+                              (activity) =>
+                                activity.type === "finding.created" && activity.subjectId === finding.findingId,
+                            )}
+                            reviewRecorded={activities.some(
+                              (activity) =>
+                                activity.type === "finding.reviewed" && activity.subjectId === finding.findingId,
+                            )}
+                            writable={writable}
+                            onReview={reviewFinding}
+                            reviewError={reviewError}
+                          />
+                        ))
+                      : null}
                   </>
                 ) : null}
               </li>
@@ -231,32 +386,6 @@ export function AiWorkspace({
           })}
         </ol>
       )}
-      {pendingFindings.length > 0 ? (
-        <div className="va-ai-findings">
-          {pendingFindings.map((finding) => (
-            <div key={finding.findingId} className="va-ai-finding">
-              <strong>Potential exception</strong>
-              <span>
-                {finding.findingId} — {finding.title}. {findingReviewLabel(finding.review)} — AI is not the
-                final authority.
-              </span>
-              <div className="va-actions">
-                <button
-                  type="button"
-                  className="va-btn va-btn-primary"
-                  onClick={() => workspace.reviewFinding(finding.findingId, "accepted")}
-                >
-                  Accept
-                </button>
-                <button type="button" className="va-btn" onClick={() => workspace.reviewFinding(finding.findingId, "rejected")}>
-                  Dismiss
-                </button>
-                <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>Review finding</Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
       {running ? (
         <p className="va-ai-progress">
           <strong>Investigating</strong>
@@ -277,22 +406,12 @@ export function AiWorkspace({
           onDone={() => setEvidenceOpen(false)}
         />
       ) : null}
-      {writable && messages.length > 0 ? (
-        <div className="va-starters">
-          {STARTERS.slice(0, 4).map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className="va-chip"
-              disabled={busy}
-              onClick={() => void ask(item.prompt)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
       <div className="va-composer-row">
+        {writable ? (
+          <button type="button" className="va-btn" onClick={() => setEvidenceOpen((value) => !value)}>
+            {evidenceOpen ? "Close" : "+ Add evidence"}
+          </button>
+        ) : null}
         <label className="va-composer-field">
           <span className="va-sr-only">Ask VeriAudit</span>
           <textarea
@@ -309,13 +428,8 @@ export function AiWorkspace({
             }}
           />
         </label>
-        {writable ? (
-          <button type="button" className="va-btn" onClick={() => setEvidenceOpen((value) => !value)}>
-            {evidenceOpen ? "Close" : "+ Evidence"}
-          </button>
-        ) : null}
         <button type="button" className="va-btn va-btn-primary" disabled={!writable || busy} onClick={() => void ask()}>
-          {busy ? "AI working" : "Ask AI"}
+          {busy ? "AI working" : "Send"}
         </button>
       </div>
     </div>
@@ -331,14 +445,11 @@ export function AiWorkspace({
             <p>
               {audit ? domainLabel(audit.domain) : local ? domainLabel(local.domain) : ""}
               {execution ? ` · ${execution.label}` : ""}
-              {evidence.length ? ` · ${evidence.length} evidence` : " · no evidence yet"}
+              {evidence.length
+                ? ` · ${evidence.length} evidence artifact${evidence.length === 1 ? "" : "s"}`
+                : " · no evidence yet"}
             </p>
           </div>
-          <nav className="va-assistant-links" aria-label="Investigate">
-            <Link href={`/product/audits/${auditId}/evidence`}>Evidence</Link>
-            <Link href={`/product/audits/${auditId}/findings`}>Findings</Link>
-            <Link href={`/product/audits/${auditId}/trace`}>Activity</Link>
-          </nav>
         </header>
         <div className="va-assistant-thread">{conversation}</div>
         {composer}
@@ -351,7 +462,7 @@ export function AiWorkspace({
       <p className="va-lede">
         The <Term name="assistant">AI audit assistant</Term> performs assigned
         work. The live <Term name="trace">trace</Term> is the same execution:{" "}
-        {execution.executionId}.{" "}
+        {execution.label}.{" "}
         {writable ? "Actions are recorded and unsealed." : execution.status === "closed" ? "Closed." : "Read-only."}
       </p>
       <ProductExplainer
@@ -374,9 +485,9 @@ export function AiWorkspace({
           {composer}
         </section>
         <section className="va-section">
-          <h2>Live execution trace</h2>
+          <h2>Live activity</h2>
           <p className="va-empty">
-            {execution.executionId}. What the assistant just did is recorded here.
+            {execution.label}. What the assistant just did is recorded here.
             {writable
               ? " Recorded is not the same as cryptographically verified."
               : execution.status === "sealed" || execution.status === "closed"

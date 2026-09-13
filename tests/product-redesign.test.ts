@@ -36,18 +36,20 @@ describe("product redesign information architecture", () => {
     expect(host).toMatch(/LiveExecutionLedger/);
     expect(host).toMatch(/va-studio/);
     expect(css).toMatch(/va-studio/);
-    expect(css).toMatch(/minmax\(0, 1fr\) 19\.5rem/);
+    expect(css).toMatch(/minmax\(0, 1fr\) 18rem/);
     expect(assistant).toMatch(/AI audit assistant/);
     expect(assistant).toMatch(/Ask VeriAudit/);
     expect(assistant).toMatch(/Recorded to execution/);
     expect(assistant).toMatch(/Ask AI/);
-    expect(assistant).toMatch(/\+ Evidence/);
+    expect(assistant).toMatch(/\+ Add evidence/);
   });
 
   it("exposes first-class seal and verify actions that call the real APIs", () => {
     const command = source("components/product/WorkspaceCommand.tsx");
     const ledger = source("components/product/LiveExecutionLedger.tsx");
     const panel = source("components/product/SealPanel.tsx");
+    expect(ledger).toMatch(/Live activity/);
+    expect(ledger).toMatch(/Execution history/);
     expect(ledger).toMatch(/SealPanel/);
     const hook = source("components/product/useExecutionTrust.ts");
     expect(command).toMatch(/Seal execution/);

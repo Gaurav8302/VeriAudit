@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { AuditWorkspaceData } from "@/lib/product/load";
+import { isSampleAudit } from "@/lib/product/localWorkspace";
 import { AiWorkspace } from "./AiWorkspace";
 import { useWorkspace } from "./WorkspaceProvider";
 
@@ -14,6 +15,10 @@ export function AuditOverview({
 }) {
   const workspace = useWorkspace();
   const local = workspace.localAudit(auditId);
+
+  if (isSampleAudit(auditId) && !local) {
+    return <p className="va-empty">Opening sample audit…</p>;
+  }
 
   if (!catalog && !local && workspace.ready) {
     return (

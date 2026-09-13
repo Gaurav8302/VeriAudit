@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { domainLabel, featuredAudits } from "@/lib/product/workspace";
+import { HERO_AUDIT_ID, domainLabel, featuredAudits } from "@/lib/product/workspace";
+import { SAMPLE_AUDIT_ID } from "@/lib/product/localWorkspace";
 import { DemoMark, PhaseBadge } from "./LifeBadge";
 import { RecentAiActivity } from "./RecentAiActivity";
+import { StartSampleAudit } from "./StartSampleAudit";
 import { useWorkspace } from "./WorkspaceProvider";
 import { canSealOnServer, hasPendingReview, workspacePhase } from "@/lib/product/workspacePhase";
 
@@ -34,7 +36,8 @@ export function ProductHome() {
         <p className="va-kicker">VeriAudit product</p>
         <h2>AI-powered audit work. Every meaningful action traceable.</h2>
         <div className="va-actions">
-          <Link href="/product/audits/new" className="va-btn va-btn-primary">
+          <StartSampleAudit />
+          <Link href="/product/audits/new" className="va-btn">
             Create Audit
           </Link>
           <Link href="/product/audits" className="va-btn">
@@ -122,20 +125,33 @@ export function ProductHome() {
           Sample workspaces <DemoMark />
         </h2>
         <div className="va-audit-cards va-audit-cards-compact">
-          {samples.map((audit) => (
-            <article key={audit.auditId} className="va-audit-card">
-              <header>
-                <div>
-                  <Link href={`/product/audits/${audit.auditId}`}>{audit.title}</Link>
-                  <p>{domainLabel(audit.domain)}</p>
-                </div>
-                <PhaseBadge phase="sample" />
-              </header>
-              <Link href={`/product/audits/${audit.auditId}`} className="va-btn">
-                Open audit
-              </Link>
-            </article>
-          ))}
+          <article className="va-audit-card">
+            <header>
+              <div>
+                <Link href={`/product/audits/${SAMPLE_AUDIT_ID}`}>September Revenue Recognition Audit</Link>
+                <p>Financial · Execution 001 · Active</p>
+              </div>
+              <PhaseBadge phase="active" />
+            </header>
+            <StartSampleAudit label="Start sample audit" />
+          </article>
+          {samples
+            .filter((audit) => audit.auditId !== HERO_AUDIT_ID)
+            .slice(0, 3)
+            .map((audit) => (
+              <article key={audit.auditId} className="va-audit-card">
+                <header>
+                  <div>
+                    <Link href={`/product/audits/${audit.auditId}`}>{audit.title}</Link>
+                    <p>{domainLabel(audit.domain)}</p>
+                  </div>
+                  <PhaseBadge phase="sample" />
+                </header>
+                <Link href={`/product/audits/${audit.auditId}`} className="va-btn">
+                  Open demo data
+                </Link>
+              </article>
+            ))}
         </div>
       </section>
     </>

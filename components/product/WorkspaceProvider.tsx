@@ -23,7 +23,9 @@ import {
   closeExecution,
   createAudit,
   createExecution,
+  ensureSampleWorkspace,
   EMPTY_WORKSPACE,
+  resetSampleWorkspace,
   evidenceFor,
   findingsFor,
   getLocalAudit,
@@ -134,6 +136,8 @@ interface WorkspaceApi {
     reference?: string;
     period?: string;
   }) => LocalAudit;
+  ensureSample: () => LocalAudit;
+  resetSample: () => LocalAudit;
   createExecution: (auditId: string) => ProductExecution;
   closeExecution: (auditId: string, executionId: string) => ProductExecution;
   sealFor: (executionId: string) => ExecutionSealBundle | null;
@@ -225,6 +229,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       },
       createAudit: (input) => {
         const result = createAudit(state, input);
+        write(result.state);
+        return result.audit;
+      },
+      ensureSample: () => {
+        const result = ensureSampleWorkspace(state);
+        if (result.created) write(result.state);
+        return result.audit;
+      },
+      resetSample: () => {
+        const result = resetSampleWorkspace(state);
         write(result.state);
         return result.audit;
       },

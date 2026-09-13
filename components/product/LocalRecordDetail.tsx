@@ -242,7 +242,7 @@ export function LocalFindingDetail({
         </section>
       ) : null}
       <section className="va-section">
-        <h2>Review finding</h2>
+        <h2>Human review</h2>
         <div className="va-form">
           <label>
             Modification note
@@ -269,13 +269,23 @@ export function LocalFindingDetail({
                 }
               }}
             >
-              {review === "accepted" ? "Accept" : review === "modified" ? "Modify" : "Dismiss"}
+              {review === "accepted" ? "Accept finding" : review === "modified" ? "Modify" : "Dismiss"}
             </button>
           ))}
         </div>
         {reviewError ? <p className="va-empty">{reviewError}</p> : null}
       </section>
-      <p className="va-empty">Human review is separate from the AI proposal. This finding is unsealed.</p>
+      {finding.review === "pending" ? (
+        <p className="va-empty">
+          HUMAN REVIEW REQUIRED. A human decides whether the AI-proposed finding is
+          correct. This is not cryptographic verification.
+        </p>
+      ) : (
+        <p className="va-empty">
+          ✓ HUMAN REVIEW COMPLETE. {findingReviewLabel(finding.review)}. Seal and
+          verify remain separate cryptographic steps.
+        </p>
+      )}
     </>
   );
 }
