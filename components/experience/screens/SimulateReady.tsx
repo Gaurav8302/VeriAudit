@@ -1,6 +1,12 @@
 import { APPROVED_CLAIMS } from "@/lib/demo/copy";
 
-export function SimulateReady({ onStart }: { onStart: () => void }) {
+export function SimulateReady({
+  auditTitle,
+  onStart,
+}: {
+  auditTitle: string;
+  onStart: () => void;
+}) {
   return (
     <article className="frame compose">
       <div>
@@ -8,8 +14,7 @@ export function SimulateReady({ onStart }: { onStart: () => void }) {
         <h1 className="display">{APPROVED_CLAIMS.simulateLater}</h1>
         <p className="lede">
           The organization kept working. New audits opened. Reviews closed.
-          Follow-ups accumulated. The September revenue audit became one record
-          among many.
+          Follow-ups accumulated. {auditTitle} became one record among many.
         </p>
         <p className="lede lede-follow">
           Nothing about that original execution has been pinned. Finding it again

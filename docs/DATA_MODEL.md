@@ -54,7 +54,7 @@ Across the four scenarios as built:
 | financial (hero) | 12 | 9 | 3 | 3 | 3 | 30 | 9 |
 | legal | 8 | 6 | 2 | 2 | 2 | 22 | 9 |
 | cyber | 10 | 7 | 3 | 3 | 2 + **1 pending** | 25 | 9 |
-| procurement | 9 | 7 | 2 | 2 | 2 (1 **rejected**) | 23 | 9 |
+| procurement | 9 | 7 | 2 | 2 | 2 (1 **rejected**) | 25 | 9 |
 
 `CONFIRMED` by test A1 and by `scripts/proof-audits.ts`. Every scenario seals
 exactly nine events because the canonical selection is one representative per
@@ -239,7 +239,7 @@ Defined in full in `EVENT_MODEL.md` §2. Key fields: `eventId`, `auditId`,
 type Artifact = {
   artifactId: string;           // "ART-FIN-001"
   auditId: string;
-  kind: "revenue_ledger" | "contract" | "approval_log" | "policy" | "access_export" | "vendor_file";
+  kind: "revenue_ledger" | "contract" | "approval_log" | "policy" | "access_export" | "vendor_file" | "goods_receipt" | "register";
   title: string;                // "Q3 Revenue Ledger Extract"
   mimeType: string;
   rows: number | null;

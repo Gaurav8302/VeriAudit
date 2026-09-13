@@ -120,6 +120,16 @@ describe("product reopen lifecycle", () => {
   });
 
   it("refuses to reopen a catalog-only audit", () => {
-    expect(() => reopenAudit("AUD-FIN-2026-12", [])).toThrow(/September revenue audit/i);
+    expect(() => reopenAudit("AUD-FIN-2026-12", [])).toThrow(/engine-backed/i);
+  });
+
+  it("reopens legal, cyber, and procurement without rewriting the original", () => {
+    for (const auditId of ["AUD-LEG-2026-08", "AUD-CYB-2026-09", "AUD-PRC-2026-09"]) {
+      const original = catalogExecutions(auditId)[0]!;
+      const next = reopenAudit(auditId, []);
+      expect(next.parentExecutionId).toBe(original.executionId);
+      expect(mergeExecutions(auditId, [next])[0]?.executionId).toBe(original.executionId);
+      expect(original.immutable).toBe(true);
+    }
   });
 });

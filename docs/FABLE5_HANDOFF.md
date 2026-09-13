@@ -24,7 +24,7 @@ showcase.
 The audience must **feel the problem before seeing the solution.**
 
 1. **Welcome** — one sentence: *Let AI perform audit work. Keep a verifiable trail of what happened.*
-2. **Choose Financial Audit** (hero / recommended). Legal, Cyber, Procurement are real but secondary.
+2. **Choose an audit.** Financial is recommended. Legal, Cyber, and Procurement are complete first-class demos on the same engine.
 3. **Run audit** — staged progress. Not a fake spinner. Result is computed (12 controls, 9 pass, 3 exceptions).
 4. **Show the result** — findings, human review, conclusion. Steer toward simulation before the trail.
 5. **Simulate three months** — copy is *“Three months later…”*, never “generate random data.”

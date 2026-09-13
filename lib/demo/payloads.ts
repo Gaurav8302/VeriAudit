@@ -1,3 +1,4 @@
+import type { ScenarioBriefing } from "@/lib/audit/scenarios/briefs";
 import type { Scenario } from "@/lib/audit/types";
 import type { SearchResponse } from "@/lib/search/types";
 import type { Activity, SimulationStats } from "@/lib/simulation/types";
@@ -19,6 +20,7 @@ export interface ScenarioBrief {
     readonly exceptions: number;
     readonly findings: number;
   };
+  readonly briefing?: ScenarioBriefing;
 }
 
 export interface CatalogueResponse {

@@ -22,6 +22,8 @@ import type {
 import { createSession, transition } from "@/lib/demo/state-machine";
 import type { DemoEvent, DemoSession } from "@/lib/demo/types";
 import { topicFromTrailType, type ExplainerTopic } from "@/lib/demo/explainer";
+import { scenarioInquiry } from "@/lib/demo/scenario-copy";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { Explainer } from "./Explainer";
 import { MemoryRail } from "./MemoryRail";
 import { History } from "./screens/History";
@@ -213,7 +215,7 @@ export function ExperienceApp() {
     <div className="app">
       <header className="chrome">
         <div>
-          <p className="chrome-mark">VeriAudit</p>
+          <BrandMark variant="compact" />
           <p className="chrome-place">{placeName(session, run, reconstruction, verifyPlace)}</p>
         </div>
         <button type="button" className="text-btn quiet" onClick={() => void resetDemo()}>
@@ -225,7 +227,11 @@ export function ExperienceApp() {
         <main className="stage">{renderStage()}</main>
         {showMemory && <MemoryRail titles={memoryTitles} crowded />}
       </div>
-      <Explainer topic={explainerTopic} raised={session.state === "history"} />
+      <Explainer
+        topic={explainerTopic}
+        scenarioId={session.selectedScenario}
+        raised={session.state === "history"}
+      />
     </div>
   );
 
@@ -265,7 +271,12 @@ export function ExperienceApp() {
           <p className="note">The run payload is missing. Restart the demonstration.</p>
         );
       case "simulate_ready":
-        return <SimulateReady onStart={() => apply({ type: "start_simulation" })} />;
+        return (
+          <SimulateReady
+            auditTitle={run?.audit.title ?? selectedTitle}
+            onStart={() => apply({ type: "start_simulation" })}
+          />
+        );
       case "simulating":
         return (
           <Simulating
@@ -279,12 +290,17 @@ export function ExperienceApp() {
         return (
           <History
             activities={simulation?.activities ?? []}
+            originAuditId={session.auditId}
+            scenarioId={session.selectedScenario}
             onAsk={() => apply({ type: "ask_why" })}
           />
         );
       case "investigation":
         return (
-          <Investigation onSearch={(query) => apply({ type: "submit_search", query })} />
+          <Investigation
+            scenarioId={session.selectedScenario}
+            onSearch={(query) => apply({ type: "submit_search", query })}
+          />
         );
       case "search_results":
         return (
@@ -293,6 +309,7 @@ export function ExperienceApp() {
             results={search}
             loading={session.phase === "loading"}
             error={session.lastError}
+            chips={scenarioInquiry(session.selectedScenario).chips}
             onSearch={(query) => apply({ type: "submit_search", query })}
             onOpen={(auditId, executionId) => apply({ type: "open_result", auditId, executionId })}
             onRetry={() => apply({ type: "retry" })}

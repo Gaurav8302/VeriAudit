@@ -1,14 +1,20 @@
-import { APPROVED_CLAIMS } from "@/lib/demo/copy";
+import type { Scenario } from "@/lib/audit/types";
 import { formatMonth, formatShort, monthKey } from "@/lib/demo/format";
 import type { Activity } from "@/lib/demo/payloads";
+import { scenarioInquiry } from "@/lib/demo/scenario-copy";
 
 export function History({
   activities,
+  originAuditId,
+  scenarioId,
   onAsk,
 }: {
   activities: readonly Activity[];
+  originAuditId: string | null;
+  scenarioId: Scenario | null;
   onAsk: () => void;
 }) {
+  const inquiry = scenarioInquiry(scenarioId);
   const groups = groupByMonth(activities);
 
   return (
@@ -25,7 +31,10 @@ export function History({
           <section key={group.key}>
             <h2 className="month">{group.label}</h2>
             {group.rows.map((activity) => (
-              <div key={activity.activityId} className="activity">
+              <div
+                key={activity.activityId}
+                className={activity.auditId === originAuditId ? "activity is-origin" : "activity"}
+              >
                 <time dateTime={activity.occurredAt}>{formatShort(activity.occurredAt)}</time>
                 <div>
                   <strong>{activity.title}</strong>
@@ -45,8 +54,8 @@ export function History({
 
       <div className="history-close">
         <div>
-          <p className="section-label">A question from the CFO</p>
-          <p className="dock-quote">{APPROVED_CLAIMS.bossQuery}?</p>
+          <p className="section-label">{inquiry.historyRole}</p>
+          <p className="dock-quote">{inquiry.bossQuery}?</p>
         </div>
         <button type="button" className="primary tight" onClick={onAsk}>
           Find the audit

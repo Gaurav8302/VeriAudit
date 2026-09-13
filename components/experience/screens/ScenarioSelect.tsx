@@ -1,3 +1,4 @@
+import { scenarioBriefing } from "@/lib/audit/scenarios/briefs";
 import type { Scenario } from "@/lib/audit/types";
 import type { CatalogueResponse, ScenarioBrief } from "@/lib/demo/payloads";
 
@@ -25,8 +26,8 @@ export function ScenarioSelect({
         <p className="kicker">Engagements</p>
         <h1 className="display">Choose an audit to run.</h1>
         <p className="lede">
-          Four live scenarios. Financial is the recommended path through this
-          demonstration.
+          Four live audits. Each one runs on the same engine and produces a
+          complete result. Financial is the recommended reference path.
         </p>
 
         {error && (
@@ -41,26 +42,34 @@ export function ScenarioSelect({
         {!catalogue && !error && <p className="note">Loading engagements…</p>}
 
         <div className="scenario-list">
-          {scenarios.map((scenario) => (
-            <button
-              key={scenario.scenarioId}
-              type="button"
-              className={scenario.scenarioId === selected ? "scenario selected" : "scenario"}
-              onClick={() => onSelect(scenario.scenarioId)}
-              aria-pressed={scenario.scenarioId === selected}
-            >
-              <span>
-                <p className="scenario-domain">{domainLabel(scenario.scenarioId)}</p>
-                <p className="scenario-title">{scenario.displayName}</p>
-                <p className="scenario-meta">
-                  {scenario.title}
-                  <span className="sep"> · </span>
-                  {scenario.controlsInScope} controls
-                </p>
-              </span>
-              {scenario.isHero && <span className="hero-tag">Recommended</span>}
-            </button>
-          ))}
+          {scenarios.map((scenario) => {
+            const briefing = scenario.briefing ?? scenarioBriefing(scenario.scenarioId);
+            return (
+              <button
+                key={scenario.scenarioId}
+                type="button"
+                className={scenario.scenarioId === selected ? "scenario selected" : "scenario"}
+                onClick={() => onSelect(scenario.scenarioId)}
+                aria-pressed={scenario.scenarioId === selected}
+              >
+                <span>
+                  <p className="scenario-domain">{briefing.domain}</p>
+                  <p className="scenario-title">{scenario.title}</p>
+                  <p className="scenario-one">{briefing.oneLine}</p>
+                  <p className="scenario-meta">
+                    {scenario.controlsInScope} controls
+                    <span className="sep"> · </span>
+                    {scenario.expected.exceptions} exceptions
+                    <span className="sep"> · </span>
+                    {scenario.period}
+                  </p>
+                </span>
+                <span className={scenario.isHero ? "hero-tag" : "avail-tag"}>
+                  {scenario.isHero ? "Recommended" : "Available"}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -68,7 +77,10 @@ export function ScenarioSelect({
         {chosen ? (
           <ChosenBrief scenario={chosen} onRun={onRun} />
         ) : (
-          <p className="side-empty">Select an engagement. Financial is the one this story is built around.</p>
+          <p className="side-empty">
+            Select any engagement. All four are complete audits. Financial is
+            marked recommended because it is the deepest reference story.
+          </p>
         )}
       </aside>
     </article>
@@ -76,15 +88,18 @@ export function ScenarioSelect({
 }
 
 function ChosenBrief({ scenario, onRun }: { scenario: ScenarioBrief; onRun: () => void }) {
+  const briefing = scenario.briefing ?? scenarioBriefing(scenario.scenarioId);
   return (
     <>
-      <p className="section-label">{scenario.isHero ? "Recommended" : "Engagement"}</p>
+      <p className="section-label">{scenario.isHero ? "Recommended" : "Ready to run"}</p>
       <h2 className="side-title">{scenario.title}</h2>
-      <p className="side-copy">{scenario.description}</p>
+      <p className="side-copy">{briefing.what}</p>
+      <p className="side-copy">{briefing.checking}</p>
+      <p className="side-copy">{briefing.humanCares}</p>
       <dl className="meta-list">
         <div>
           <dt>Domain</dt>
-          <dd>{domainLabel(scenario.scenarioId)}</dd>
+          <dd>{briefing.domain}</dd>
         </div>
         <div>
           <dt>Controls</dt>
@@ -96,15 +111,8 @@ function ChosenBrief({ scenario, onRun }: { scenario: ScenarioBrief; onRun: () =
         </div>
       </dl>
       <button type="button" className="primary" onClick={onRun}>
-        Run {scenario.displayName.toLowerCase()}
+        Run this audit
       </button>
     </>
   );
-}
-
-function domainLabel(scenarioId: Scenario): string {
-  if (scenarioId === "financial") return "Financial";
-  if (scenarioId === "legal") return "Legal / compliance";
-  if (scenarioId === "cyber") return "Cybersecurity";
-  return "Procurement";
 }

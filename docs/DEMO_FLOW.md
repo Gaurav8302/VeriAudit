@@ -25,7 +25,7 @@ Target run time: **4–5 minutes**.
 | | |
 |---|---|
 | **User action** | opens the Vercel URL |
-| **UI state** | one screen: *"Let AI perform audit work. Keep a verifiable trail of what happened."* Four scenario cards: Financial Audit (marked **hero / recommended**), Legal & Compliance, Cybersecurity & IT, Procurement & Vendor Controls |
+| **UI state** | one screen: *"Let AI perform audit work. Keep a verifiable trail of what happened."* Four complete scenario cards. Financial is marked **recommended**. Legal, Cybersecurity, and Procurement are marked **available** and each runs a full computed audit. |
 | **Backend** | none — static/RSC render |
 | **Data** | scenario metadata only |
 | **CooL** | none |
@@ -33,12 +33,14 @@ Target run time: **4–5 minutes**.
 | **Determinism** | fully static |
 | **Failure handling** | no network dependency, so nothing to fail |
 
-`CONFIRMED` in Milestone 2: all four scenarios run on the same engine and are
-live behind `GET /api/audits`, so the three non-financial cards no longer need to
-be labelled *"available in the extended build"*. They produce real audits with
+`CONFIRMED`: all four scenarios run on the same engine and are live behind
+`GET /api/audits` and `POST /api/audits/run`. They produce real audits with
 real findings and real receipts — 8/6/2 for legal, 10/7/3 for cyber, 9/7/2 for
-procurement. The financial card stays marked **hero / recommended** because it is
-the deepest and the one the rest of the demo follows.
+procurement. The financial card stays marked **recommended** because it is the
+deepest reference story. The other three are first-class demos, not placeholders.
+A simulated historical activity can still have a complete trail without claiming
+CooL receipts it does not hold. Live runs of any scenario seal the canonical
+nine events when CooL is available.
 
 ---
 

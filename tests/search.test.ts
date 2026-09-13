@@ -218,6 +218,25 @@ describe("T — reconstruction", () => {
   });
 });
 
+describe("S — scenario-specific retrieval", () => {
+  it("ranks GDPR processor obligations on the legal engine audit", () => {
+    const result = search("GDPR processor obligations", {}, index);
+    expect(result.groups[0]!.auditId).toBe("AUD-LEG-2026-08");
+  });
+
+  it("ranks privileged access and MFA exception on the cyber engine audit", () => {
+    expect(search("privileged access", {}, index).groups[0]!.auditId).toBe("AUD-CYB-2026-09");
+    expect(search("MFA exception", {}, index).groups[0]!.auditId).toBe("AUD-CYB-2026-09");
+  });
+
+  it("ranks three-way match and vendor invoice variance on the procurement engine audit", () => {
+    expect(search("three-way match", {}, index).groups[0]!.auditId).toBe("AUD-PRC-2026-09");
+    expect(search("vendor invoice variance", {}, index).groups[0]!.auditId).toBe(
+      "AUD-PRC-2026-09",
+    );
+  });
+});
+
 describe("U — search → trail → verify (the demo)", () => {
   it("U1 — simulate → search → open → reconstruct → verify the original conclusion", async () => {
     expect(simulation.activities).toHaveLength(55);
