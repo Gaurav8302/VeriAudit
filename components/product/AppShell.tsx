@@ -80,14 +80,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
         </nav>
         <div className="va-side-foot">
+          <Link href="/" className="va-back">
+            ← Back to VeriAudit
+          </Link>
           <Link href="/demo">View demo</Link>
-          <Link href="/">Public landing</Link>
         </div>
       </aside>
       <div className="va-main">
         <header className="va-chrome">
           <p className="va-chrome-label">{meta.chrome}</p>
           <nav className="va-chrome-actions" aria-label="Workspace actions">
+            <Link href="/" className="va-back">
+              ← Back to VeriAudit
+            </Link>
             <Link href="/product/data">Sample data</Link>
             <Link href="/#faq">Help</Link>
             <Link href="/demo">Replay demo</Link>

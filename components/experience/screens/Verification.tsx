@@ -383,9 +383,7 @@ export function Verification({
           VeriAudit does not prevent legitimate changes. It preserves the
           distinction between new work and changed history.
         </p>
-        <button type="button" className="primary" onClick={() => setBeat("complete")}>
-          The demo is complete
-        </button>
+        <ProductNext onExplore={onExplore ?? onHome} onRestart={onRestart ?? onHome} />
       </article>
     );
   }
@@ -393,27 +391,16 @@ export function Verification({
   if (beat === "complete") {
     return (
       <article className="frame">
-        <p className="kicker">End of demonstration</p>
-        <h1 className="display">The demo is complete.</h1>
-        <p className="lede">You&apos;ve seen the VeriAudit idea.</p>
-        <p className="lede lede-follow">
-          Now explore the product we&apos;re actually building. The demo is the
-          guided experience. The product is the workspace.
-        </p>
-        <p className="note">Product preview · Work in progress</p>
+        <p className="kicker">The foundation</p>
+        <h1 className="display">The execution is independently verifiable.</h1>
+        <p className="lede">{APPROVED_CLAIMS.productAfterProof}</p>
+        <p className="lede lede-follow">{APPROVED_CLAIMS.productVision}</p>
         <p className="thesis">
           Rework is allowed.
           <br />
           Rewriting history is detectable.
         </p>
-        <div className="home-close-actions">
-          <button type="button" className="primary" onClick={onRestart ?? onHome}>
-            Restart demo
-          </button>
-          <button type="button" className="primary" onClick={onExplore ?? onHome}>
-            Explore the product →
-          </button>
-        </div>
+        <ProductNext onExplore={onExplore ?? onHome} onRestart={onRestart ?? onHome} />
       </article>
     );
   }
@@ -492,15 +479,49 @@ export function Verification({
       )}
 
       {passed ? (
-        <button type="button" className="primary" onClick={() => setBeat("rework")}>
-          What if we need to investigate this again?
-        </button>
+        <ProductNext
+          onExplore={onExplore ?? onHome}
+          onRestart={onRestart ?? onHome}
+          onContinueRework={() => setBeat("rework")}
+        />
       ) : (
         <button type="button" className="primary" onClick={onRetry}>
           Try again
         </button>
       )}
     </article>
+  );
+}
+
+function ProductNext({
+  onExplore,
+  onRestart,
+  onContinueRework,
+}: {
+  onExplore: () => void;
+  onRestart: () => void;
+  onContinueRework?: () => void;
+}) {
+  return (
+    <section className="product-next">
+      <p className="kicker">The foundation</p>
+      <h2 className="home-sub">{APPROVED_CLAIMS.productFoundation}</h2>
+      <p className="lede">{APPROVED_CLAIMS.productAfterProof}</p>
+      <p className="lede lede-follow">{APPROVED_CLAIMS.productVision}</p>
+      <div className="product-next-actions">
+        <button type="button" className="primary" onClick={onExplore}>
+          {APPROVED_CLAIMS.exploreProduct}
+        </button>
+        <button type="button" className="ghost" onClick={onRestart}>
+          {APPROVED_CLAIMS.restartWalkthrough}
+        </button>
+        {onContinueRework && (
+          <button type="button" className="text-btn quiet" onClick={onContinueRework}>
+            {APPROVED_CLAIMS.continueRework}
+          </button>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -615,7 +636,7 @@ function placeFor(beat: Beat): string {
   if (beat === "rework" || beat === "rework-done") return "Re-investigation";
   if (beat === "tamper" || beat === "tampered" || beat === "rechecking") return "Historical record";
   if (beat === "failed") return "Integrity failure";
-  if (beat === "complete") return "Demonstration complete";
+  if (beat === "complete") return "Product path";
   return "Verification";
 }
 

@@ -2,6 +2,7 @@
  * Demo contract boundary. Presentation state only — no CooL, no engine.
  */
 export { APPROVED_CLAIMS, DEMO_TIMING_SECONDS, FORBIDDEN_CLAIMS, SUGGESTION_CHIPS } from "./copy";
+export { DEMO_COMPLETED_KEY, isDemoCompleted, markDemoCompleted } from "./completion";
 export {
   GOLDEN_PATH,
   INITIAL_SESSION,

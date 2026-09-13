@@ -1353,6 +1353,30 @@ a:focus-visible {
   line-height: 1.2;
 }
 
+.product-next {
+  margin-top: 2.75rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.product-next-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.product-next-actions .primary {
+  margin-top: 1.6rem;
+}
+
+.product-next-actions .ghost {
+  margin-top: 0.85rem;
+}
+
+.product-next-actions .text-btn {
+  margin-top: 0.75rem;
+}
+
 .home-close-actions {
   display: flex;
   flex-wrap: wrap;

@@ -19,6 +19,7 @@ import type {
   SessionEvidence,
   SimulationFeed,
 } from "@/lib/demo/payloads";
+import { isDemoCompleted, markDemoCompleted } from "@/lib/demo/completion";
 import { createSession, transition } from "@/lib/demo/state-machine";
 import type { DemoEvent, DemoSession } from "@/lib/demo/types";
 import { topicFromTrailType, type ExplainerTopic } from "@/lib/demo/explainer";
@@ -56,6 +57,7 @@ export function ExperienceApp() {
   const [evidence, setEvidence] = useState<SessionEvidence | null>(null);
   const [explainerTopic, setExplainerTopic] = useState<ExplainerTopic>("welcome");
   const [verifyPlace, setVerifyPlace] = useState("Verification");
+  const [demoCompleted, setDemoCompleted] = useState(false);
 
   const apply = useCallback((event: DemoEvent) => {
     const next = transition(sessionRef.current, event);
@@ -77,7 +79,14 @@ export function ExperienceApp() {
 
   useEffect(() => {
     setEvidence(loadEvidence());
+    setDemoCompleted(isDemoCompleted());
   }, []);
+
+  const openProduct = useCallback(() => {
+    markDemoCompleted();
+    setDemoCompleted(true);
+    router.push("/product");
+  }, [router]);
 
   useEffect(() => {
     if (session.state !== "scenario_select" || catalogue) return;
@@ -146,7 +155,12 @@ export function ExperienceApp() {
                 })
               : await reconstruct(auditId);
           setReconstruction(record);
-          apply({ type: "verification_completed", status: integrityStatus(record.integrity) });
+          const status = integrityStatus(record.integrity);
+          apply({ type: "verification_completed", status });
+          if (status === "verified") {
+            markDemoCompleted();
+            setDemoCompleted(true);
+          }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Request failed";
@@ -238,7 +252,13 @@ export function ExperienceApp() {
   function renderStage() {
     switch (session.state) {
       case "welcome":
-        return <Welcome onBegin={() => apply({ type: "begin" })} />;
+        return (
+          <Welcome
+            onBegin={() => apply({ type: "begin" })}
+            onExplore={openProduct}
+            completed={demoCompleted}
+          />
+        );
       case "scenario_select":
         return (
           <ScenarioSelect
@@ -345,7 +365,7 @@ export function ExperienceApp() {
             onRetry={() => apply({ type: "retry" })}
             onHome={returnHome}
             onRestart={() => void resetDemo()}
-            onExplore={() => router.push("/product")}
+            onExplore={openProduct}
             onTopic={setExplainerTopic}
             onPlace={setVerifyPlace}
           />

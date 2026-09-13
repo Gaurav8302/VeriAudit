@@ -1,6 +1,14 @@
 import { APPROVED_CLAIMS } from "@/lib/demo/copy";
 
-export function Welcome({ onBegin }: { onBegin: () => void }) {
+export function Welcome({
+  onBegin,
+  onExplore,
+  completed,
+}: {
+  onBegin: () => void;
+  onExplore?: () => void;
+  completed?: boolean;
+}) {
   return (
     <article className="frame compose">
       <div>
@@ -13,9 +21,19 @@ export function Welcome({ onBegin }: { onBegin: () => void }) {
           Financial is the recommended reference path. The others are complete
           audits, not placeholders.
         </p>
-        <button type="button" className="primary" onClick={onBegin}>
-          Begin an audit
-        </button>
+        <div className="product-next-actions">
+          <button type="button" className="primary" onClick={onBegin}>
+            Begin an audit
+          </button>
+          {completed && onExplore && (
+            <>
+              <p className="note">{APPROVED_CLAIMS.landingAfterWalkthrough}</p>
+              <button type="button" className="ghost" onClick={onExplore}>
+                {APPROVED_CLAIMS.exploreProduct}
+              </button>
+            </>
+          )}
+        </div>
       </div>
       <aside className="side-panel">
         <p className="section-label">What this walkthrough holds</p>

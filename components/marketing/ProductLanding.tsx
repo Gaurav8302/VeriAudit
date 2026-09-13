@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/brand/BrandMark";
+import { isDemoCompleted } from "@/lib/demo/completion";
 import { FAQS } from "./copy";
 import { PRODUCT_SHORTCUT } from "./product-shortcut";
 import "./marketing.css";
@@ -135,7 +136,12 @@ export function ProductLanding() {
   const [step, setStep] = useState<(typeof PIPELINE)[number]["id"]>("analysis");
   const [coolOpen, setCoolOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const active = PIPELINE.find((item) => item.id === step) ?? PIPELINE[0];
+
+  useEffect(() => {
+    setCompleted(isDemoCompleted());
+  }, []);
 
   return (
     <div className="site">
@@ -153,11 +159,11 @@ export function ProductLanding() {
             <Link href="/demo" className="site-cta">
               Start the Demo
             </Link>
-            {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-            <Link href={PRODUCT_SHORTCUT.href} className="site-text">
-              {PRODUCT_SHORTCUT.label}
-              <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
-            </Link>
+            {completed && (
+              <Link href={PRODUCT_SHORTCUT.href} className="site-text">
+                {PRODUCT_SHORTCUT.label}
+              </Link>
+            )}
             <button
               type="button"
               className="site-menu"
@@ -179,11 +185,11 @@ export function ProductLanding() {
             <Link href="/demo" className="site-cta" onClick={() => setMenuOpen(false)}>
               Start the Demo
             </Link>
-            {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-            <Link href={PRODUCT_SHORTCUT.href} className="site-text" onClick={() => setMenuOpen(false)}>
-              {PRODUCT_SHORTCUT.label}
-              <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
-            </Link>
+            {completed && (
+              <Link href={PRODUCT_SHORTCUT.href} className="site-text" onClick={() => setMenuOpen(false)}>
+                {PRODUCT_SHORTCUT.label}
+              </Link>
+            )}
           </nav>
         )}
       </header>
@@ -209,11 +215,11 @@ export function ProductLanding() {
               <Link href="/demo" className="site-cta site-cta-lg">
                 Start the Demo
               </Link>
-              {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-              <Link href={PRODUCT_SHORTCUT.href} className="site-text">
-                {PRODUCT_SHORTCUT.label}
-                <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
-              </Link>
+              {completed && (
+                <Link href={PRODUCT_SHORTCUT.href} className="site-cta">
+                  {PRODUCT_SHORTCUT.label}
+                </Link>
+              )}
               <a href="#how" className="site-text">
                 Explore how it works
               </a>
@@ -423,9 +429,9 @@ export function ProductLanding() {
                 <li>CooL sealing for real, non-sample work</li>
               </ul>
               <p>
-                The intended path is demo first, then the workspace. You can
-                also open the product directly. Either way, this is an early
-                build — not a finished enterprise suite.
+                {completed
+                  ? "You've seen the walkthrough. The workspace is ready to inspect — an early build, not a finished enterprise suite."
+                  : "The intended path is the interactive demo first. This preview describes the workspace being built around it. It is an early build — not a finished enterprise suite."}
               </p>
             </div>
           </div>
@@ -433,22 +439,26 @@ export function ProductLanding() {
 
         <section className="site-band">
           <div className="site-wrap site-close">
-            <p className="site-kicker">Use the product</p>
-            <h2 className="site-h2">You&apos;ve seen the story. Now explore the product we&apos;re building.</h2>
+            <p className="site-kicker">{completed ? "Continue" : "See it work"}</p>
+            <h2 className="site-h2">
+              {completed
+                ? "You've seen the demonstration. Now inspect the product."
+                : "The walkthrough is the story. Start there."}
+            </h2>
             <p className="site-intro">
-              The intended path is the interactive demo. That is the narrative.
-              Explore the Product opens the work-in-progress workspace directly,
-              so you can inspect the application without repeating the walkthrough.
+              {completed
+                ? PRODUCT_SHORTCUT.note
+                : "The intended path is the interactive demo. That is the narrative."}
             </p>
             <div className="site-actions">
               <Link href="/demo" className="site-cta site-cta-lg">
                 Start the Demo
               </Link>
-              {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-              <Link href={PRODUCT_SHORTCUT.href} className="site-text">
-                {PRODUCT_SHORTCUT.label}
-                <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
-              </Link>
+              {completed && (
+                <Link href={PRODUCT_SHORTCUT.href} className="site-cta">
+                  {PRODUCT_SHORTCUT.label}
+                </Link>
+              )}
             </div>
           </div>
         </section>
@@ -479,11 +489,11 @@ export function ProductLanding() {
               <Link href="/demo" className="site-cta site-cta-lg">
                 Start the Demo
               </Link>
-              {/* TEMPORARY DEVELOPMENT SHORTCUT — REMOVE BEFORE FINAL HACKATHON SUBMISSION */}
-              <Link href={PRODUCT_SHORTCUT.href} className="site-text">
-                {PRODUCT_SHORTCUT.label}
-                <span className="site-wip-inline">{PRODUCT_SHORTCUT.note}</span>
-              </Link>
+              {completed && (
+                <Link href={PRODUCT_SHORTCUT.href} className="site-cta">
+                  {PRODUCT_SHORTCUT.label}
+                </Link>
+              )}
             </div>
           </div>
         </section>

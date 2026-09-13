@@ -22,9 +22,10 @@ describe("public landing copy", () => {
     expect(trace?.a).toMatch(/not a new explanation/i);
   });
 
-  it("keeps the temporary product shortcut secondary and labelled unfinished", () => {
+  it("keeps the product pathway pointed at the workspace", () => {
     expect(PRODUCT_SHORTCUT.href).toBe("/product");
-    expect(PRODUCT_SHORTCUT.note).toMatch(/work in progress/i);
+    expect(PRODUCT_SHORTCUT.label).toMatch(/explore the product/i);
+    expect(PRODUCT_SHORTCUT.note).toMatch(/you've seen the demonstration/i);
   });
 
   it("explains verification without claiming the AI was correct", () => {
