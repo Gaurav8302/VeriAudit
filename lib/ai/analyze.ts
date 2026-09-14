@@ -1,9 +1,12 @@
-import { INSUFFICIENT_EVIDENCE } from "@/lib/evidence";
 import { runGateway, type GatewayResult } from "./gateway";
+import { contextBlock, type AiWorkspaceContext } from "./context";
 import {
+  corpusForPrompt,
   groundedActions,
   groundingOf,
-  insufficientWork,
+  hasReadableEvidence,
+  NO_EVIDENCE_ATTACHED,
+  noEvidenceWork,
   referencesFrom,
   retrieveForPrompt,
   validateReferences,
@@ -18,6 +21,7 @@ export interface AnalyzeInput {
   readonly evidence: readonly AiEvidenceContext[];
   readonly auditTitle?: string;
   readonly executionId?: string;
+  readonly context?: AiWorkspaceContext;
 }
 
 export interface AnalyzeOutput extends GatewayResult {
@@ -37,16 +41,15 @@ export async function analyzeExecution(
   input: AnalyzeInput,
   gateway = runGateway,
 ): Promise<AnalyzeOutput> {
-  const hits = retrieveForPrompt(input.prompt, input.evidence);
-  if (hits.length === 0) {
-    const work = insufficientWork();
+  // Nothing readable attached is the only honest "I cannot answer" case.
+  if (!hasReadableEvidence(input.evidence)) {
     return {
-      work,
+      work: noEvidenceWork(),
       failures: [],
       response: {
         provider: "mock",
         model: "veriaudit-grounding",
-        response: INSUFFICIENT_EVIDENCE,
+        response: NO_EVIDENCE_ATTACHED,
         usage: null,
         latencyMs: 0,
         requestId: null,
@@ -56,6 +59,13 @@ export async function analyzeExecution(
     };
   }
 
+  // Retrieval ranks evidence. When no passage scores above the threshold the
+  // model still sees the real corpus, so a broad question ("summarize this
+  // audit") is answered instead of being refused for a retrieval miss.
+  const ranked = retrieveForPrompt(input.prompt, input.evidence);
+  const hits = ranked.length > 0 ? ranked : corpusForPrompt(input.evidence);
+  const scoped = ranked.length > 0 ? "Highest scoring evidence" : "Full attached evidence corpus";
+
   const retrieved = input.evidence.filter((item) => hits.some((hit) => hit.evidenceId === item.evidenceId));
   const messages: AiChatMessage[] = [
     { role: "system", content: ANALYZE_SYSTEM_PROMPT },
@@ -63,10 +73,12 @@ export async function analyzeExecution(
     {
       role: "user",
       content: [
-        input.auditTitle ? `Audit: ${input.auditTitle}` : null,
-        input.executionId ? `Execution: ${input.executionId}` : null,
+        contextBlock(
+          input.context ?? (input.auditTitle ? { auditTitle: input.auditTitle } : undefined),
+          input.evidence,
+        ),
         `Question: ${input.prompt}`,
-        "Relevant evidence chunks (cite only these IDs):",
+        `${scoped} (cite only these chunk IDs):`,
         chunkBlock(hits),
       ]
         .filter(Boolean)

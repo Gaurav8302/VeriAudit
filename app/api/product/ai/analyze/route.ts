@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzeExecution } from "@/lib/ai/analyze";
+import type { AiWorkspaceContext } from "@/lib/ai/context";
 import type { AiChatMessage, AiEvidenceContext } from "@/lib/ai/types";
 import { HERO_EXECUTION_ID } from "@/lib/product/workspace";
 
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
     prior?: AiChatMessage[];
     evidence?: AiEvidenceContext[];
     auditTitle?: string;
+    context?: AiWorkspaceContext;
   } | null;
   const prompt = body?.prompt?.trim();
   const executionId = body?.executionId?.trim();
@@ -33,6 +35,7 @@ export async function POST(request: Request) {
     evidence: body?.evidence ?? [],
     auditTitle: body?.auditTitle,
     executionId,
+    context: body?.context,
   });
 
   return NextResponse.json({

@@ -59,6 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   className={active(pathname, item.href) ? "va-link is-active" : "va-link"}
                 >
                   {item.label}
@@ -72,6 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   className={active(pathname, item.href) ? "va-link is-active" : "va-link"}
                 >
                   {item.label}

@@ -109,7 +109,8 @@ const PRODUCT_RANK: Record<ProductEventName, number> = {
   "audit.execution.closed": 7,
 };
 
-export const MAX_PRODUCT_EVENTS = 32;
+/** Cap stays bounded for CooL. Compact AI reads so a normal sample path fits. */
+export const MAX_PRODUCT_EVENTS = 48;
 
 export function scenarioOf(domain: ProductDomain): Scenario {
   if (domain === "legal") return "legal";
@@ -193,6 +194,11 @@ function draftsFromSnapshot(snapshot: SealSnapshot): DraftEvent[] {
 
     if (productEvent === "ai.action.started" || productEvent === "ai.action.completed") {
       const action = snapshot.actions.find((item) => item.actionId === activity.subjectId);
+      // READ_EVIDENCE is sealed as evidence.read. SEARCH is scaffolding, not a
+      // distinct cryptographic action. Keep ANALYZE / CREATE / REVIEW / SUMMARIZE.
+      if (action && (action.type === "SEARCH_EVIDENCE" || action.type === "READ_EVIDENCE")) {
+        continue;
+      }
       if (action) {
         actionId = action.actionId;
         evidenceIds = [...action.evidenceIds];
@@ -259,8 +265,12 @@ function draftsFromSnapshot(snapshot: SealSnapshot): DraftEvent[] {
     });
   }
 
+  const readSeen = new Set<string>();
   for (const action of snapshot.actions) {
     if (action.type !== "READ_EVIDENCE" || action.status !== "completed") continue;
+    const key = action.evidenceIds.slice().sort().join(",") || action.actionId;
+    if (readSeen.has(key)) continue;
+    readSeen.add(key);
     drafts.push({
       at: action.completedAt ?? action.occurredAt,
       productEvent: "evidence.read",

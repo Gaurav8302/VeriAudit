@@ -17,29 +17,33 @@ import {
   applyAiTurn,
   attachSeal,
   asWorkspaceAudit,
+  beginAiTurn,
+  beginEvidenceUpload,
   buildSampleExport,
   canReopenAudit,
   clearLocalWorkspace,
   closeExecution,
+  completeAiTurn,
+  completeEvidenceUpload,
   createAudit,
   createExecution,
+  discardEvidence,
   ensureSampleWorkspace,
   EMPTY_WORKSPACE,
+  failAiTurn,
+  failEvidenceUpload,
+  readyEvidenceFor,
   resetSampleWorkspace,
   evidenceFor,
   findingsFor,
   getLocalAudit,
   hydrateWorkspaceExecutions,
   messagesFor,
-  migrateReopens,
-  parseWorkspace,
   reviewFinding,
-  REOPEN_STORAGE_KEY,
   sealFor,
   selectedExecutionId,
   selectExecution,
   updateFindingStatus,
-  WORKSPACE_STORAGE_KEY,
   type FindingLife,
   type FindingReview,
   type FindingSeverity,
@@ -51,6 +55,7 @@ import {
   type LocalMessage,
   type WorkspaceState,
 } from "@/lib/product/localWorkspace";
+import { createWorkspaceStore } from "@/lib/product/workspaceStore";
 import type { AiMode, AiProviderName, ProposedAction } from "@/lib/ai/types";
 import type { ExecutionSealBundle } from "@/lib/product/sealTypes";
 import {
@@ -58,56 +63,22 @@ import {
   type ProductExecution,
 } from "@/lib/product/lineage";
 import {
-  listEngineEvidence,
+  engineEvidenceCount,
   visibleAudits,
   type ProductDomain,
   type WorkspaceAudit,
 } from "@/lib/product/workspace";
 
-let memory: WorkspaceState = { ...EMPTY_WORKSPACE };
-let cachedRaw: string | null = null;
-const listeners = new Set<() => void>();
-
-function emit() {
-  for (const listener of listeners) listener();
-}
-
-function read(): WorkspaceState {
-  if (typeof window === "undefined") return memory;
-  try {
-    const raw = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
-    if (raw === cachedRaw && raw) return memory;
-    if (raw) {
-      cachedRaw = raw;
-      memory = parseWorkspace(JSON.parse(raw));
-      return memory;
-    }
-    const legacy = window.localStorage.getItem(REOPEN_STORAGE_KEY);
-    memory = legacy ? migrateReopens(JSON.parse(legacy) as Record<string, ProductExecution[]>) : memory;
-    cachedRaw = JSON.stringify(memory);
-    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, cachedRaw);
-  } catch {
-    cachedRaw = null;
-  }
-  return memory;
-}
-
-function write(next: WorkspaceState) {
-  memory = next;
-  cachedRaw = JSON.stringify(next);
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, cachedRaw);
-  }
-  emit();
-}
+const store = createWorkspaceStore(typeof window === "undefined" ? null : window.localStorage);
+const { read, write, update, mutate } = store;
 
 function subscribe(listener: () => void) {
-  listeners.add(listener);
+  const unsubscribe = store.subscribe(listener);
   if (typeof window !== "undefined") {
     window.addEventListener("storage", listener);
   }
   return () => {
-    listeners.delete(listener);
+    unsubscribe();
     if (typeof window !== "undefined") {
       window.removeEventListener("storage", listener);
     }
@@ -117,7 +88,7 @@ function subscribe(listener: () => void) {
 interface WorkspaceApi {
   ready: boolean;
   state: WorkspaceState;
-  catalog: WorkspaceAudit[];
+  catalog: readonly WorkspaceAudit[];
   audits: WorkspaceAudit[];
   localAudit: (auditId: string) => LocalAudit | null;
   executions: (auditId: string) => ProductExecution[];
@@ -144,6 +115,14 @@ interface WorkspaceApi {
   attachSeal: (executionId: string, bundle: ExecutionSealBundle) => void;
   reopen: (auditId: string) => ProductExecution;
   addEvidence: (input: Parameters<typeof addEvidence>[1]) => LocalEvidence;
+  beginEvidenceUpload: (input: Parameters<typeof beginEvidenceUpload>[1]) => LocalEvidence;
+  completeEvidenceUpload: (
+    artifactId: string,
+    ingested: Parameters<typeof completeEvidenceUpload>[2],
+  ) => LocalEvidence;
+  failEvidenceUpload: (artifactId: string, message: string) => LocalEvidence;
+  discardEvidence: (artifactId: string) => void;
+  readyEvidence: (auditId: string, executionId?: string) => LocalEvidence[];
   addFinding: (input: {
     auditId: string;
     executionId: string;
@@ -181,6 +160,9 @@ interface WorkspaceApi {
       excerpt: string;
     }[];
   }) => { findingIds: readonly string[] };
+  beginAiTurn: (input: { auditId: string; executionId: string; prompt: string }) => string;
+  completeAiTurn: (input: Parameters<typeof completeAiTurn>[1]) => { findingIds: readonly string[] };
+  failAiTurn: (input: { auditId: string; executionId: string; message: string }) => void;
   exportSample: () => ReturnType<typeof buildSampleExport>;
   clearLocal: () => void;
 }
@@ -188,7 +170,7 @@ interface WorkspaceApi {
 const WorkspaceContext = createContext<WorkspaceApi | null>(null);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const raw = useSyncExternalStore(subscribe, read, () => memory);
+  const raw = useSyncExternalStore(subscribe, read, store.snapshot);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   const state = hydrated ? raw : { ...EMPTY_WORKSPACE };
@@ -202,9 +184,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       audits: [
         ...catalog.map((audit) => ({
           ...audit,
-          evidenceCount:
-            listEngineEvidence().filter((item) => item.auditId === audit.auditId).length +
-            evidenceFor(state, audit.auditId).length,
+          evidenceCount: engineEvidenceCount(audit.auditId) + evidenceFor(state, audit.auditId).length,
           origin: "catalog" as const,
           findingCount: audit.findingCount + findingsFor(state, audit.auditId).length,
         })),
@@ -227,67 +207,45 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           : null;
         return Boolean(execution && !execution.immutable && execution.status === "open");
       },
-      createAudit: (input) => {
-        const result = createAudit(state, input);
-        write(result.state);
-        return result.audit;
-      },
+      createAudit: (input) => update((current) => createAudit(current, input)).audit,
       ensureSample: () => {
-        const result = ensureSampleWorkspace(state);
+        const result = ensureSampleWorkspace(read());
         if (result.created) write(result.state);
         return result.audit;
       },
-      resetSample: () => {
-        const result = resetSampleWorkspace(state);
-        write(result.state);
-        return result.audit;
-      },
-      createExecution: (auditId) => {
-        const result = createExecution(state, auditId);
-        write(result.state);
-        return result.execution;
-      },
-      closeExecution: (auditId, executionId) => {
-        const result = closeExecution(state, auditId, executionId);
-        write(result.state);
-        return result.execution;
-      },
+      resetSample: () => update((current) => resetSampleWorkspace(current)).audit,
+      createExecution: (auditId) => update((current) => createExecution(current, auditId)).execution,
+      closeExecution: (auditId, executionId) =>
+        update((current) => closeExecution(current, auditId, executionId)).execution,
       sealFor: (executionId) => sealFor(state, executionId),
-      attachSeal: (executionId, bundle) => write(attachSeal(state, executionId, bundle)),
-      reopen: (auditId) => {
-        const result = createExecution(state, auditId);
-        write(result.state);
-        return result.execution;
-      },
-      addEvidence: (input) => {
-        const result = addEvidence(state, input);
-        write(result.state);
-        return result.evidence;
-      },
-      addFinding: (input) => {
-        const result = addFinding(state, input);
-        write(result.state);
-        return result.finding;
-      },
-      updateFinding: (findingId, status) => {
-        const result = updateFindingStatus(state, findingId, status);
-        write(result.state);
-        return result.finding;
-      },
-      reviewFinding: (findingId, review, note) => {
-        const result = reviewFinding(state, findingId, review, note);
-        write(result.state);
-        return result.finding;
-      },
+      attachSeal: (executionId, bundle) =>
+        mutate((current) => attachSeal(current, executionId, bundle)),
+      reopen: (auditId) => update((current) => createExecution(current, auditId)).execution,
+      addEvidence: (input) => update((current) => addEvidence(current, input)).evidence,
+      beginEvidenceUpload: (input) => update((current) => beginEvidenceUpload(current, input)).evidence,
+      completeEvidenceUpload: (artifactId, ingested) =>
+        update((current) => completeEvidenceUpload(current, artifactId, ingested)).evidence,
+      failEvidenceUpload: (artifactId, message) =>
+        update((current) => failEvidenceUpload(current, artifactId, message)).evidence,
+      discardEvidence: (artifactId) => mutate((current) => discardEvidence(current, artifactId)),
+      readyEvidence: (auditId, executionId) => readyEvidenceFor(state, auditId, executionId),
+      addFinding: (input) => update((current) => addFinding(current, input)).finding,
+      updateFinding: (findingId, status) =>
+        update((current) => updateFindingStatus(current, findingId, status)).finding,
+      reviewFinding: (findingId, review, note) =>
+        update((current) => reviewFinding(current, findingId, review, note)).finding,
       messages: (auditId, executionId) => messagesFor(state, auditId, executionId),
       actions: (auditId, executionId) => actionsFor(state, auditId, executionId),
-      applyAiTurn: (input) => {
-        const result = applyAiTurn(state, input);
-        write(result.state);
-        return { findingIds: result.findingIds };
-      },
+      applyAiTurn: (input) => ({
+        findingIds: update((current) => applyAiTurn(current, input)).findingIds,
+      }),
+      beginAiTurn: (input) => update((current) => beginAiTurn(current, input)).messageId,
+      completeAiTurn: (input) => ({
+        findingIds: update((current) => completeAiTurn(current, input)).findingIds,
+      }),
+      failAiTurn: (input) => mutate((current) => failAiTurn(current, input).state),
       exportSample: () => buildSampleExport(state, catalog),
-      clearLocal: () => write(clearLocalWorkspace(state)),
+      clearLocal: () => mutate((current) => clearLocalWorkspace(current)),
     }),
     [catalog, hydrated, state],
   );

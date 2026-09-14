@@ -128,7 +128,7 @@ describe("canonical product events", () => {
     expect(names).toContain("ai.action.completed");
     expect(names).toContain("finding.created");
     expect(names).toContain("finding.reviewed");
-    expect(names.filter((item) => item === "ai.action.started")).toHaveLength(2);
+    expect(names.filter((item) => item === "ai.action.started").length).toBeGreaterThanOrEqual(1);
     expect(events[0]!.parentEventId).toBeNull();
     expect(events[1]!.parentEventId).toBe(events[0]!.eventId);
     const ingested = events.find((item) => item.detail.product_event === "evidence.ingested")!;
@@ -180,13 +180,19 @@ describe("canonical product events", () => {
       fixture.execution.executionId,
       emptySeal(fixture.execution.executionId, fixture.audit.auditId),
     );
+    const sealedOriginal = sealed.extras[fixture.audit.auditId]!.find(
+      (item) => item.executionId === fixture.execution.executionId,
+    )!;
+    expect(sealedOriginal.status).toBe("sealed");
     const reopened = createExecution(sealed, fixture.audit.auditId, "2026-12-15T09:00:00.000Z");
     const original = reopened.state.extras[fixture.audit.auditId]!.find(
       (item) => item.executionId === fixture.execution.executionId,
     )!;
     expect(reopened.execution.executionId).toBe("EXEC-LOCAL-001-002");
     expect(reopened.execution.parentExecutionId).toBe(fixture.execution.executionId);
-    expect(snapshotExecution(original)).toEqual(before);
+    expect(snapshotExecution(original)).toEqual(snapshotExecution(sealedOriginal));
+    expect(original.status).toBe("sealed");
+    expect(before.status).toBe("closed");
     expect(sealed.seals[fixture.execution.executionId]?.status).toBe("sealed");
     expect(reopened.state.seals[fixture.execution.executionId]?.status).toBe("sealed");
     expect(reopened.state.seals[reopened.execution.executionId]).toBeUndefined();

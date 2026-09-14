@@ -1,0 +1,26 @@
+Customer Contract C-1002 (sample)
+
+Page 1
+Section 1 Parties
+Customer: Meridian Health Group
+Contract reference: C-1002
+Contract value: USD 310,000
+Period: 2026-09
+
+Page 2
+Section 2 Performance Obligations
+Obligation M1: delivery of the first tranche of monitoring devices.
+Obligation M2: delivery of the remaining tranche and site commissioning.
+Each tranche is a separate performance obligation.
+
+Page 3
+Section 3 Milestone Billing
+Tranche one is billable at USD 120,000 and was delivered on 2026-09-15.
+Tranche two is billable at USD 190,000 and remains undelivered as at 2026-09-30.
+Partial delivery does not satisfy the remaining obligation.
+
+Page 4
+Section 4 Related Ledger Entries
+Journal entry JE-4402 records USD 310,000 for this contract.
+
+This file is sample workspace data. It is not a sealed CooL export.

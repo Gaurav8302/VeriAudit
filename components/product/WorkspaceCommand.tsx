@@ -15,7 +15,8 @@ export function WorkspaceCommand({
   placement?: "bar" | "rail";
 }) {
   const workspace = useWorkspace();
-  const { execution, primary, canReopen } = useAuditPhase(auditId);
+  const { execution, findings, primary, canReopen } = useAuditPhase(auditId);
+  const pendingFinding = findings.find((item) => item.review === "pending");
   const writable = isWritableExecution(execution);
   const [closeError, setCloseError] = useState<string | null>(null);
 
@@ -37,7 +38,11 @@ export function WorkspaceCommand({
             Continue audit
           </a>
         ) : null}
-        {primary === "review" ? (
+        {primary === "review" && pendingFinding ? (
+          <a href={`#finding-${pendingFinding.findingId}`} className="va-btn va-btn-primary">
+            Review
+          </a>
+        ) : primary === "review" ? (
           <Link href={`/product/audits/${auditId}/findings`} className="va-btn va-btn-primary">
             Review
           </Link>

@@ -49,7 +49,9 @@ export function ProductHome() {
       <div className="va-home-grid">
         <section className="va-panel-quiet">
           <h2>Active audits</h2>
-          {active.length === 0 ? (
+          {!workspace.ready ? (
+            <p className="va-empty">Loading recent audits…</p>
+          ) : active.length === 0 ? (
             <p className="va-empty">No local audits yet. Create one to start an execution.</p>
           ) : (
             <ul className="va-list">

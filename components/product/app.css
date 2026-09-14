@@ -1386,9 +1386,13 @@
   overflow: hidden;
 }
 
+/*
+ * The assistant must dominate. With the ~14rem global nav, a 22rem rail leaves
+ * the conversation roughly 64% of a 1600px desktop and the trace roughly 22%.
+ */
 .va-studio {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 18rem;
+  grid-template-columns: minmax(0, 1fr) 22rem;
   height: 100%;
   min-height: 0;
 }
@@ -1450,6 +1454,8 @@
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-6);
+  padding-bottom: 8rem;
+  scroll-padding-bottom: 8rem;
 }
 
 .va-assistant-empty {
@@ -1509,6 +1515,8 @@
 }
 
 .va-finding-card {
+  position: relative;
+  z-index: 1;
   margin: var(--space-5) 0 0;
   padding: var(--space-4);
   border: 1px solid var(--line-strong);
@@ -1669,6 +1677,19 @@
   color: var(--faint);
 }
 
+.va-rail-log {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.va-rail-log li {
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  padding: 0.2rem 0;
+}
+
 .va-rail-block ul {
   margin: 0;
   padding: 0;
@@ -1718,6 +1739,132 @@
 
 .va-upload.is-compact {
   margin: 0 0 var(--space-3);
+}
+
+/* Evidence lifecycle, shown next to the composer so upload state is obvious. */
+.va-evidence-strip {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--main);
+}
+
+.va-evidence-strip ul,
+.va-evidence-status {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.va-evidence-strip li,
+.va-evidence-status li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: 0.15rem 0;
+  font-size: var(--fs-meta);
+  color: var(--ink);
+}
+
+.va-evidence-strip li strong,
+.va-evidence-status li strong {
+  font-weight: 500;
+}
+
+.va-evidence-strip li.is-ready > span:first-child {
+  color: var(--accent-strong);
+}
+
+.va-evidence-strip li.is-uploading > span:first-child,
+.va-evidence-strip li.is-uploading .meta {
+  color: var(--faint);
+}
+
+.va-evidence-strip li.is-failed,
+.va-evidence-status li.is-failed {
+  color: var(--danger, #b3462f);
+}
+
+.va-evidence-summary {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-meta);
+}
+
+.va-evidence-summary a {
+  color: var(--muted);
+}
+
+.va-evidence-status {
+  margin-top: var(--space-3);
+}
+
+.va-evidence-status li {
+  flex-wrap: wrap;
+}
+
+/* Assistant progress. Each row is a step the client actually performs. */
+.va-ai-thinking {
+  color: var(--accent-strong);
+}
+
+.va-ai-stages {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-meta);
+}
+
+.va-ai-stages li {
+  padding: 0.15rem 0;
+  color: var(--faint);
+}
+
+.va-ai-stages li.is-active {
+  color: var(--accent-strong);
+}
+
+.va-ai-stages li.is-done {
+  color: var(--muted);
+}
+
+.va-chat li.is-pending strong {
+  color: var(--accent-strong);
+}
+
+.va-review-error {
+  margin: var(--space-3) 0 0;
+  color: var(--danger, #b3462f);
+  font-size: var(--fs-meta);
+}
+
+.va-btn-quiet {
+  padding: 0.2rem 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: var(--fs-meta);
+}
+
+.va-btn.is-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.va-rail-events li.is-done > span:first-child {
+  color: var(--accent-strong);
+}
+
+.va-rail-events li.is-waiting {
+  color: var(--faint);
 }
 
 @media (max-width: 960px) {

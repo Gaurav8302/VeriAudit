@@ -6,7 +6,14 @@ import { useWorkspace } from "./WorkspaceProvider";
 
 export function RecentAiActivity() {
   const workspace = useWorkspace();
-  if (!workspace.ready) return null;
+  if (!workspace.ready) {
+    return (
+      <section className="va-section">
+        <h2>Recent AI activity</h2>
+        <p className="va-empty">Loading recent AI activity…</p>
+      </section>
+    );
+  }
 
   const actions = [...workspace.state.actions]
     .sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : -1))

@@ -130,7 +130,7 @@ describe("workspace phase and seal CTA", () => {
       isCatalogSample: false,
     })).toBe("review");
     expect(ready.canRequestSeal).toBe(false);
-    expect(ready.checks.some((item) => item.label.includes("human decisions") && !item.ok)).toBe(true);
+    expect(ready.checks.some((item) => item.label.toLowerCase().includes("human review") && !item.ok)).toBe(true);
   });
 
   it("never treats the hero catalog original as CooL-sealable", () => {

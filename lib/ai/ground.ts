@@ -19,6 +19,64 @@ export function retrieveForPrompt(prompt: string, evidence: readonly AiEvidenceC
   return retrieveChunks(prompt, chunksFromEvidence(evidence));
 }
 
+/** Keep the fallback corpus small enough to stay inside a provider context window. */
+const FALLBACK_MAX_CHUNKS = 18;
+const FALLBACK_MAX_CHARS = 14_000;
+
+/**
+ * Every readable chunk, in document order, for questions that no single passage
+ * answers — "summarize this audit", "which contracts are present". Retrieval
+ * ranks evidence; it must not decide whether the model is allowed to answer.
+ * These are real chunks, so the reply stays grounded in attached evidence.
+ */
+export function corpusForPrompt(evidence: readonly AiEvidenceContext[]): RetrievedChunk[] {
+  const out: RetrievedChunk[] = [];
+  let chars = 0;
+  for (const group of chunksFromEvidence(evidence)) {
+    for (const chunk of group.chunks) {
+      if (out.length >= FALLBACK_MAX_CHUNKS || chars + chunk.text.length > FALLBACK_MAX_CHARS) {
+        return out;
+      }
+      chars += chunk.text.length;
+      out.push({
+        ...chunk,
+        evidenceId: group.evidenceId,
+        filename: group.filename,
+        title: group.title,
+        score: 0,
+      });
+    }
+  }
+  return out;
+}
+
+/** True when nothing readable is attached, so no answer is possible. */
+export function hasReadableEvidence(evidence: readonly AiEvidenceContext[]): boolean {
+  return chunksFromEvidence(evidence).some((group) => group.chunks.length > 0);
+}
+
+export const NO_EVIDENCE_ATTACHED =
+  "No readable evidence is attached to this execution yet. Add evidence (or use the sample evidence pack) and I will review it.";
+
+export function noEvidenceWork(): ParsedAiWork {
+  return {
+    reply: NO_EVIDENCE_ATTACHED,
+    actions: [
+      {
+        type: "SEARCH_EVIDENCE",
+        title: "Evidence search",
+        detail: "No readable evidence is attached to this execution.",
+        evidenceIds: [],
+        chunkIds: [],
+      },
+    ],
+    confidence: "none",
+    grounding: "insufficient",
+    evidenceReferences: [],
+    suggestedFindings: [],
+  };
+}
+
 export function referencesFrom(hits: readonly RetrievedChunk[]): EvidenceReference[] {
   return hits.map((hit) => ({
     evidenceId: hit.evidenceId,

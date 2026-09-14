@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { WorkspaceFinding } from "@/lib/product/workspace";
-import { findingReviewLabel } from "@/lib/product/localWorkspace";
+import { findingReviewLabel, isWritableExecution } from "@/lib/product/localWorkspace";
 import { DemoMark } from "./LifeBadge";
 import { useWorkspace } from "./WorkspaceProvider";
 
@@ -20,6 +20,15 @@ export function FindingsBoard({
   const showCatalog = Boolean(catalog.length && selected && selected === originalId);
   const local = selected ? workspace.findings(auditId, selected) : workspace.findings(auditId);
   const current = executions.find((item) => item.executionId === selected);
+  const writable = isWritableExecution(current);
+
+  function review(findingId: string, decision: "accepted" | "rejected") {
+    try {
+      workspace.reviewFinding(findingId, decision);
+    } catch {
+      // The workspace reducer throws if the execution is no longer writable.
+    }
+  }
 
   return (
     <>
@@ -64,9 +73,31 @@ export function FindingsBoard({
                 {finding.origin === "ai" ? "AI proposal" : "User finding"} · {findingReviewLabel(finding.review)}
                 {finding.evidenceIds.length ? ` · ${finding.evidenceIds.length} evidence` : ""}
               </p>
-              <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
-                {finding.review === "pending" ? "Review finding" : "Open finding"}
-              </Link>
+              {finding.review === "pending" && writable ? (
+                <div className="va-actions">
+                  <button
+                    type="button"
+                    className="va-btn va-btn-primary"
+                    onClick={() => review(finding.findingId, "accepted")}
+                  >
+                    Accept finding
+                  </button>
+                  <button
+                    type="button"
+                    className="va-btn"
+                    onClick={() => review(finding.findingId, "rejected")}
+                  >
+                    Dismiss
+                  </button>
+                  <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
+                    Review details
+                  </Link>
+                </div>
+              ) : (
+                <Link href={`/product/audits/${auditId}/findings/${finding.findingId}`}>
+                  {finding.review === "pending" ? "Review finding" : "Open finding"}
+                </Link>
+              )}
             </article>
           ))}
         </div>

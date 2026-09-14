@@ -46,11 +46,11 @@ export function sealReadiness(input: {
   const eventsExist = activityCount > 0;
   const reviewsDone = !hasPendingReview(findings);
   const checks = [
-    { ok: closed, required: true, label: "Execution is closed" },
+    { ok: evidenceCount > 0, required: false, label: "Required evidence recorded" },
+    { ok: reviewsDone, required: true, label: "Required human reviews complete" },
+    { ok: closed, required: true, label: "Execution closed" },
     { ok: eventsExist, required: true, label: "Recorded events exist" },
-    { ok: evidenceCount > 0, required: false, label: "Evidence is attached" },
-    { ok: reviewsDone, required: true, label: "Findings have required human decisions" },
-    { ok: sealable, required: true, label: "CooL sealing is available for this execution" },
+    { ok: sealable, required: true, label: "CooL sealing available" },
   ] as const;
   return {
     canRequestSeal: sealable && eventsExist && reviewsDone,

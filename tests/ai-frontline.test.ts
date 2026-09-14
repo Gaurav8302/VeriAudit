@@ -22,7 +22,8 @@ describe("AI frontline product UX", () => {
     const nav = source("components/product/WorkspaceNav.tsx");
     expect(workspace).toMatch(/AI audit assistant/);
     expect(workspace).toMatch(/Ask AI/);
-    expect(workspace).toMatch(/Recorded to execution/);
+    // The recorded-to copy names the execution, e.g. "Recorded to Execution 001".
+    expect(workspace).toMatch(/Recorded to \{executionLabel\}/);
     expect(workspace).not.toMatch(/cryptographically sealed until/);
     expect(create).toMatch(/AI audit assistant/);
     expect(nav).toMatch(/Workspace/);

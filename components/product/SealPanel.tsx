@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { sealReadiness } from "@/lib/product/workspacePhase";
 import { useAuditPhase } from "./useAuditPhase";
-import { useExecutionTrust } from "./useExecutionTrust";
+import { useExecutionTrust } from "./ExecutionTrustProvider";
 
 function CheckRow({ ok, label }: { ok: boolean; label: string }) {
   return (
@@ -23,7 +23,7 @@ export function SealPanel({
   compact?: boolean;
 }) {
   const { execution, findings, evidence, activities, actions, hasSeal, readiness } = useAuditPhase(auditId);
-  const trust = useExecutionTrust(auditId, execution?.executionId ?? null);
+  const trust = useExecutionTrust();
   const [confirm, setConfirm] = useState(confirmOpen);
   const [details, setDetails] = useState(false);
   const checks = readiness.checks.length ? readiness.checks : sealReadiness({

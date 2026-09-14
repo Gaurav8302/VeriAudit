@@ -148,11 +148,23 @@ export function listWorkspaceAudits(): WorkspaceAudit[] {
   }));
 }
 
-export function featuredAudits(): WorkspaceAudit[] {
-  const all = listWorkspaceAudits();
-  return FEATURED_AUDIT_IDS.map((id) => all.find((audit) => audit.auditId === id)).filter(
-    (audit): audit is WorkspaceAudit => Boolean(audit),
-  );
+let featured: readonly WorkspaceAudit[] | null = null;
+
+/**
+ * The catalog is static, so hand back one frozen array. A fresh array each call
+ * gave the workspace provider a new dependency identity on every render, which
+ * rebuilt the whole workspace API instead of reusing the memoised one.
+ */
+export function featuredAudits(): readonly WorkspaceAudit[] {
+  if (!featured) {
+    const all = listWorkspaceAudits();
+    featured = Object.freeze(
+      FEATURED_AUDIT_IDS.map((id) => all.find((audit) => audit.auditId === id))
+        .filter((audit): audit is WorkspaceAudit => Boolean(audit))
+        .map((audit) => Object.freeze(audit)),
+    );
+  }
+  return featured;
 }
 
 export function getWorkspaceAudit(auditId: string): WorkspaceAudit | null {
@@ -201,6 +213,24 @@ export function listEngineEvidence(): WorkspaceArtifact[] {
       record: "sample" as const,
     })),
   );
+}
+
+let engineEvidenceCounts: ReadonlyMap<string, number> | null = null;
+
+/**
+ * Scenario artifacts are static, so count them once. The workspace used to call
+ * `listEngineEvidence()` per catalog audit on every render, rebuilding the whole
+ * artifact list four times to produce four numbers.
+ */
+export function engineEvidenceCount(auditId: string): number {
+  if (!engineEvidenceCounts) {
+    const counts = new Map<string, number>();
+    for (const scenario of SCENARIOS) {
+      counts.set(scenario.auditId, (counts.get(scenario.auditId) ?? 0) + scenario.artifacts.length);
+    }
+    engineEvidenceCounts = counts;
+  }
+  return engineEvidenceCounts.get(auditId) ?? 0;
 }
 
 export function getArtifactContent(artifactId: string): { filename: string; text: string } | null {
@@ -278,11 +308,14 @@ export function heroConclusion() {
   };
 }
 
-export function visibleAudits(): WorkspaceAudit[] {
+export function visibleAudits(): readonly WorkspaceAudit[] {
   return featuredAudits();
 }
 
-export function filterAudits(query: string, audits = visibleAudits()): WorkspaceAudit[] {
+export function filterAudits(
+  query: string,
+  audits: readonly WorkspaceAudit[] = visibleAudits(),
+): readonly WorkspaceAudit[] {
   const needle = query.trim().toLowerCase();
   if (!needle) return audits;
   return audits.filter((audit) => {

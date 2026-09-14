@@ -7,15 +7,27 @@ export interface SampleFile {
 
 export const SAMPLE_PACKS: readonly SampleFile[] = [
   {
-    filename: "revenue-recognition-policy.txt",
-    path: "/product-samples/revenue-recognition-policy.txt",
-    kind: "Policy",
+    filename: "q3-general-ledger.csv",
+    path: "/product-samples/q3-general-ledger.csv",
+    kind: "Ledger",
     domain: "financial",
   },
   {
-    filename: "q4-general-ledger.csv",
-    path: "/product-samples/q4-general-ledger.csv",
-    kind: "Ledger",
+    filename: "customer-contract-c-1001.txt",
+    path: "/product-samples/customer-contract-c-1001.txt",
+    kind: "Contract",
+    domain: "financial",
+  },
+  {
+    filename: "customer-contract-c-1002.txt",
+    path: "/product-samples/customer-contract-c-1002.txt",
+    kind: "Contract",
+    domain: "financial",
+  },
+  {
+    filename: "revenue-recognition-policy.txt",
+    path: "/product-samples/revenue-recognition-policy.txt",
+    kind: "Policy",
     domain: "financial",
   },
   {
@@ -39,7 +51,7 @@ export const SAMPLE_PACKS: readonly SampleFile[] = [
 ];
 
 export function sampleFilesFor(domain?: string): readonly SampleFile[] {
-  if (!domain) return SAMPLE_PACKS;
+  if (!domain) return SAMPLE_PACKS.filter((item) => item.domain === "financial");
   const matched = SAMPLE_PACKS.filter((item) => item.domain === domain);
   return matched.length ? matched : SAMPLE_PACKS.filter((item) => item.domain === "financial");
 }

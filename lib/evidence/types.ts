@@ -1,4 +1,8 @@
-export type EvidenceProcessing = "processing" | "ready" | "failed";
+/**
+ * `uploading` and `processing` are optimistic client states. Only the server
+ * ingest response may move an artifact to `ready` or `failed`.
+ */
+export type EvidenceProcessing = "uploading" | "processing" | "ready" | "failed";
 
 export interface EvidenceChunk {
   readonly chunkId: string;

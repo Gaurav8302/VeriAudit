@@ -54,7 +54,16 @@ export function EvidenceBoard({
                 {item.filename ?? item.title}
               </Link>
               <p>
-                {item.kind} · {item.source || "Upload"}
+                {item.kind} · {item.source || "Upload"} ·{" "}
+                {item.processingStatus === "uploading"
+                  ? "Uploading"
+                  : item.processingStatus === "processing"
+                    ? "Processing"
+                    : item.processingStatus === "failed"
+                      ? "Failed"
+                      : item.recorded
+                        ? "Ready"
+                        : "Not recorded"}
                 {item.fingerprint ? ` · ${item.fingerprint.slice(0, 12)}` : ""}
               </p>
             </article>

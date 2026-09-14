@@ -36,10 +36,12 @@ describe("product redesign information architecture", () => {
     expect(host).toMatch(/LiveExecutionLedger/);
     expect(host).toMatch(/va-studio/);
     expect(css).toMatch(/va-studio/);
-    expect(css).toMatch(/minmax\(0, 1fr\) 18rem/);
+    // The trace rail is widened so live activity stays visible beside the chat.
+    expect(css).toMatch(/minmax\(0, 1fr\) 22rem/);
     expect(assistant).toMatch(/AI audit assistant/);
     expect(assistant).toMatch(/Ask VeriAudit/);
-    expect(assistant).toMatch(/Recorded to execution/);
+    // The recorded-to copy names the execution, e.g. "Recorded to Execution 001".
+    expect(assistant).toMatch(/Recorded to \{executionLabel\}/);
     expect(assistant).toMatch(/Ask AI/);
     expect(assistant).toMatch(/\+ Add evidence/);
   });

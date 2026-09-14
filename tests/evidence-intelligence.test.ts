@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { analyzeExecution } from "@/lib/ai/analyze";
 import { fingerprintBytes, ingestFile } from "@/lib/ai/ingest";
 import { parseAiWork } from "@/lib/ai/parseActions";
-import { validateReferences } from "@/lib/ai/ground";
+import { NO_EVIDENCE_ATTACHED, validateReferences } from "@/lib/ai/ground";
+import { fallbackChunks } from "@/lib/evidence/chunk";
 import { ProviderError } from "@/lib/ai/errors";
 import { runGateway } from "@/lib/ai/gateway";
 import { chunkText } from "@/lib/evidence/chunk";
@@ -33,7 +34,15 @@ describe("evidence intelligence", () => {
     });
     expect(csv.fingerprint).toBe(fingerprintBytes(bytes));
     expect(csv.processingStatus).toBe("ready");
+    expect(csv.kind).toBe("Ledger");
     expect(csv.chunks.some((item) => item.text.includes("REV-1042"))).toBe(true);
+
+    const contract = ingestFile({
+      name: "customer-contract-c-1001.txt",
+      type: "text/plain",
+      bytes: new TextEncoder().encode("Contract C-1001 milestone M2."),
+    });
+    expect(contract.kind).toBe("Contract");
 
     const json = ingestFile({
       name: "controls.json",
@@ -113,9 +122,38 @@ describe("evidence intelligence", () => {
     expect(policyHits.some((item) => item.evidenceId === "ART-2")).toBe(true);
   });
 
-  it("returns insufficient evidence when nothing relevant exists", async () => {
-    const result = await analyzeExecution({
+  it("says nothing is attached only when no readable evidence exists", async () => {
+    const empty = await analyzeExecution({
       prompt: "Does this contract contain the required approval clause?",
+      evidence: [],
+    });
+    expect(empty.work.reply).toBe(NO_EVIDENCE_ATTACHED);
+    expect(empty.work.grounding).toBe("insufficient");
+    expect(empty.work.evidenceReferences).toEqual([]);
+
+    const unreadable = await analyzeExecution({
+      prompt: "Does this contract contain the required approval clause?",
+      evidence: [
+        {
+          evidenceId: "ART-XLSX",
+          title: "Workbook",
+          kind: "Ledger",
+          filename: "ledger.xlsx",
+          extraction: "unavailable",
+          textExcerpt: null,
+          chunks: [],
+        },
+      ],
+    });
+    expect(unreadable.work.reply).toBe(NO_EVIDENCE_ATTACHED);
+    expect(unreadable.work.grounding).toBe("insufficient");
+  });
+
+  it("still consults the model when evidence is attached but no passage scores a hit", async () => {
+    // A retrieval miss must not become a refusal: the corpus is real and small,
+    // so the model receives it and answers from what is actually attached.
+    const result = await analyzeExecution({
+      prompt: "Summarize the current audit.",
       evidence: [
         {
           evidenceId: "ART-LEDGER",
@@ -127,9 +165,12 @@ describe("evidence intelligence", () => {
         },
       ],
     });
-    expect(result.work.reply).toBe(INSUFFICIENT_EVIDENCE);
-    expect(result.work.grounding).toBe("insufficient");
-    expect(result.work.evidenceReferences).toEqual([]);
+    expect(retrieveChunks("Summarize the current audit.", [
+      { evidenceId: "ART-LEDGER", title: "Empty note", filename: "note.txt", chunks: fallbackChunks("ART-LEDGER", "note.txt", "Office lunch roster for September.") },
+    ])).toHaveLength(0);
+    expect(result.work.reply).not.toBe(INSUFFICIENT_EVIDENCE);
+    expect(result.work.reply).not.toBe(NO_EVIDENCE_ATTACHED);
+    expect(result.work.reply.length).toBeGreaterThan(0);
   });
 
   it("normalizes a model reply and drops invented evidence references", () => {

@@ -1,0 +1,26 @@
+Customer Contract C-1001 (sample)
+
+Page 1
+Section 1 Parties
+Customer: Northwind Logistics
+Contract reference: C-1001
+Contract value: USD 1,420,000
+Period: 2026-09
+
+Page 2
+Section 2 Performance Obligations
+Obligation M1: staging of freight equipment at the customer depot.
+Obligation M2: recorded delivery of the freight equipment to the customer site.
+Control of the equipment transfers to Northwind Logistics only on completion of M2.
+
+Page 3
+Section 3 Milestone Billing
+Milestone M2 is billable at USD 1,420,000.
+M2 is satisfied only when a signed delivery receipt is recorded.
+As at 2026-09-30 no delivery receipt has been recorded for M2.
+
+Page 4
+Section 4 Related Ledger Entries
+Journal entry JE-4401 records the M2 amount for this contract.
+
+This file is sample workspace data. It is not a sealed CooL export.

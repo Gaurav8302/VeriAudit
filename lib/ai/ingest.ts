@@ -32,8 +32,15 @@ export function fingerprintBytes(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function kindFor(ext: string, parsedKind: string): string {
-  if (ext === "csv" || parsedKind === "csv") return "Ledger";
+function kindFor(filename: string, ext: string, parsedKind: string): string {
+  const stem = filename.toLowerCase();
+  if (stem.includes("contract") || stem.includes("agreement") || stem.includes("addendum") || stem.includes("dpa")) {
+    return "Contract";
+  }
+  if (stem.includes("policy")) return "Policy";
+  if (stem.includes("ledger") || stem.includes("journal") || ext === "csv" || parsedKind === "csv") return "Ledger";
+  if (stem.includes("access") || stem.includes("log")) return "Access log";
+  if (stem.includes("purchase") || stem.includes("approval")) return "Approval record";
   if (ext === "json" || parsedKind === "json") return "Other";
   if (ext === "txt" || ext === "pdf") return "Policy";
   return "Other";
@@ -60,7 +67,7 @@ export function ingestFile(file: { name: string; type: string; bytes: Uint8Array
     if (parsed.kind === "xlsx") {
       return {
         filename: file.name,
-        kind: kindFor(ext, parsed.kind),
+        kind: kindFor(file.name, ext, parsed.kind),
         mimeType: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         fingerprint,
         extraction: "unavailable",
@@ -74,7 +81,7 @@ export function ingestFile(file: { name: string; type: string; bytes: Uint8Array
     if (!parsed.text) {
       return {
         filename: file.name,
-        kind: kindFor(ext, parsed.kind),
+        kind: kindFor(file.name, ext, parsed.kind),
         mimeType: file.type || "application/pdf",
         fingerprint,
         extraction: "unavailable",
@@ -88,7 +95,7 @@ export function ingestFile(file: { name: string; type: string; bytes: Uint8Array
     const chunks = chunkText(file.name, parsed.text, parsed.kind);
     return {
       filename: file.name,
-      kind: kindFor(ext, parsed.kind),
+      kind: kindFor(file.name, ext, parsed.kind),
       mimeType: file.type || (parsed.kind === "csv" ? "text/csv" : parsed.kind === "json" ? "application/json" : "text/plain"),
       fingerprint,
       extraction: "text",
@@ -104,7 +111,7 @@ export function ingestFile(file: { name: string; type: string; bytes: Uint8Array
   } catch {
     return {
       filename: file.name,
-      kind: kindFor(ext, ext),
+      kind: kindFor(file.name, ext, ext),
       mimeType: file.type || "application/octet-stream",
       fingerprint,
       extraction: "unavailable",

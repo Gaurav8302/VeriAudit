@@ -73,6 +73,10 @@ export interface LocalEvidence {
   readonly byteSize: number | null;
   readonly processingStatus: EvidenceProcessing;
   readonly chunks: readonly EvidenceChunk[];
+  /** Set only when `processingStatus` is `failed`. */
+  readonly processingError: string | null;
+  /** True once the server confirmed ingestion and an execution event exists. */
+  readonly recorded: boolean;
 }
 
 export interface LocalFinding {
@@ -200,10 +204,14 @@ export function migrateReopens(reopens: Record<string, ProductExecution[]>): Wor
 }
 
 function asEvidence(item: LocalEvidence): LocalEvidence {
+  const processingStatus = item.processingStatus ?? "ready";
   return {
     ...item,
-    processingStatus: item.processingStatus ?? (item.extraction === "text" ? "ready" : "ready"),
+    processingStatus,
     chunks: item.chunks ?? [],
+    processingError: item.processingError ?? null,
+    // Legacy records predate the flag; a stored artifact was always confirmed.
+    recorded: item.recorded ?? processingStatus === "ready",
   };
 }
 
@@ -250,8 +258,11 @@ export function hydrateWorkspaceExecutions(
 ): ProductExecution[] {
   return executions.map((execution) => {
     if (execution.hasEngineTrail) return execution;
+    const sealed = Boolean(state.seals[execution.executionId]);
     return {
       ...execution,
+      status: sealed ? "sealed" : execution.status,
+      immutable: sealed ? true : execution.immutable,
       eventCount: state.actions.filter(
         (item) => item.executionId === execution.executionId && item.status === "completed",
       ).length,
@@ -602,8 +613,8 @@ export function attachSeal(
   if (bundle.executionId !== executionId) {
     throw new Error("The seal does not belong to this execution.");
   }
-  const extras = Object.values(state.extras).flat();
-  const execution = extras.find((item) => item.executionId === executionId);
+  const known = Object.values(state.extras).flat();
+  const execution = known.find((item) => item.executionId === executionId);
   if (!execution) {
     throw new Error("That execution is not a product execution.");
   }
@@ -613,8 +624,19 @@ export function attachSeal(
   if (state.seals[executionId]) {
     throw new Error("This execution is already sealed.");
   }
+  const extras = Object.fromEntries(
+    Object.entries(state.extras).map(([auditId, list]) => [
+      auditId,
+      list.map((item) =>
+        item.executionId === executionId
+          ? { ...item, status: "sealed" as const, immutable: true }
+          : item,
+      ),
+    ]),
+  );
   return {
     ...state,
+    extras,
     seals: { ...state.seals, [executionId]: bundle },
   };
 }
@@ -675,8 +697,10 @@ export function addEvidence(
     extraction: input.extraction ?? "none",
     textExcerpt: input.textExcerpt ?? null,
     byteSize: input.byteSize ?? null,
-    processingStatus: input.processingStatus ?? (input.extraction === "text" ? "ready" : "ready"),
+    processingStatus: input.processingStatus ?? "ready",
     chunks: remapChunkIds(artifactId, input.chunks ?? []),
+    processingError: null,
+    recorded: true,
   };
   return {
     state: withActivity(
@@ -693,6 +717,160 @@ export function addEvidence(
     ),
     evidence,
   };
+}
+
+/**
+ * Optimistically place an artifact in the workspace before the server has seen
+ * the bytes. No execution event is recorded here: the artifact is not evidence
+ * of anything until ingestion is confirmed.
+ */
+export function beginEvidenceUpload(
+  state: WorkspaceState,
+  input: {
+    auditId: string;
+    executionId: string;
+    filename: string;
+    kind?: string;
+    byteSize?: number | null;
+    sample?: boolean;
+    createdAt?: string;
+  },
+): { state: WorkspaceState; evidence: LocalEvidence } {
+  const execution = assertWritable(state, input.auditId, input.executionId);
+  const createdAt = input.createdAt ?? new Date().toISOString();
+  const artifactId = `ART-LOCAL-${pad(nextCount(state.evidence.map((item) => item.artifactId), "ART-LOCAL-"))}`;
+  const evidence: LocalEvidence = {
+    artifactId,
+    auditId: input.auditId,
+    executionId: execution.executionId,
+    title: titleFromFilename(input.filename),
+    kind: input.kind ?? "Other",
+    source: input.sample ? "Sample pack" : "Upload",
+    description: input.sample ? "Sample evidence." : "Uploaded evidence.",
+    reference: createdAt.slice(0, 10),
+    createdAt,
+    sample: input.sample ?? false,
+    filename: input.filename,
+    fingerprint: null,
+    extraction: "none",
+    textExcerpt: null,
+    byteSize: input.byteSize ?? null,
+    processingStatus: "uploading",
+    chunks: [],
+    processingError: null,
+    recorded: false,
+  };
+  return { state: { ...state, evidence: [...state.evidence, evidence] }, evidence };
+}
+
+/**
+ * Reconcile a confirmed server ingest. This is the only path that marks an
+ * artifact `ready` and the only one that records the execution event.
+ */
+export function completeEvidenceUpload(
+  state: WorkspaceState,
+  artifactId: string,
+  ingested: {
+    filename: string;
+    kind?: string;
+    fingerprint: string;
+    extraction?: EvidenceExtraction;
+    textExcerpt?: string | null;
+    byteSize?: number | null;
+    processingStatus?: EvidenceProcessing;
+    chunks?: readonly EvidenceChunk[];
+    note?: string;
+  },
+  occurredAt?: string,
+): { state: WorkspaceState; evidence: LocalEvidence } {
+  const current = state.evidence.find((item) => item.artifactId === artifactId);
+  if (!current) throw new Error("That evidence is not in this workspace.");
+  const at = occurredAt ?? new Date().toISOString();
+  const status = ingested.processingStatus ?? "ready";
+  if (status === "failed") {
+    return failEvidenceUpload(state, artifactId, ingested.note ?? "The file could not be processed.");
+  }
+  const evidence: LocalEvidence = {
+    ...current,
+    title: titleFromFilename(ingested.filename),
+    kind: ingested.kind ?? current.kind,
+    filename: ingested.filename,
+    fingerprint: ingested.fingerprint,
+    extraction: ingested.extraction ?? "none",
+    textExcerpt: ingested.textExcerpt ?? null,
+    byteSize: ingested.byteSize ?? current.byteSize,
+    processingStatus: status,
+    chunks: remapChunkIds(artifactId, ingested.chunks ?? []),
+    processingError: null,
+    recorded: true,
+  };
+  return {
+    state: withActivity(
+      {
+        ...state,
+        evidence: state.evidence.map((item) => (item.artifactId === artifactId ? evidence : item)),
+      },
+      {
+        auditId: evidence.auditId,
+        executionId: evidence.executionId,
+        type: "evidence.uploaded",
+        title: "Evidence added",
+        detail: evidence.title,
+        occurredAt: at,
+        subjectId: artifactId,
+      },
+    ),
+    evidence,
+  };
+}
+
+/** Mark a failed ingest. No execution event is recorded for failed evidence. */
+export function failEvidenceUpload(
+  state: WorkspaceState,
+  artifactId: string,
+  message: string,
+): { state: WorkspaceState; evidence: LocalEvidence } {
+  const current = state.evidence.find((item) => item.artifactId === artifactId);
+  if (!current) throw new Error("That evidence is not in this workspace.");
+  const evidence: LocalEvidence = {
+    ...current,
+    processingStatus: "failed",
+    processingError: message,
+    recorded: false,
+  };
+  return {
+    state: {
+      ...state,
+      evidence: state.evidence.map((item) => (item.artifactId === artifactId ? evidence : item)),
+    },
+    evidence,
+  };
+}
+
+/** Discard an artifact that never became evidence (failed or abandoned upload). */
+export function discardEvidence(state: WorkspaceState, artifactId: string): WorkspaceState {
+  const current = state.evidence.find((item) => item.artifactId === artifactId);
+  if (!current || current.recorded) return state;
+  return {
+    ...state,
+    evidence: state.evidence.filter((item) => item.artifactId !== artifactId),
+    activities: state.activities.filter((item) => item.subjectId !== artifactId),
+  };
+}
+
+function titleFromFilename(filename: string): string {
+  return filename.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ");
+}
+
+/** Evidence the AI can actually read: confirmed by the server and parsed. */
+export function readyEvidenceFor(
+  state: WorkspaceState,
+  auditId: string,
+  executionId?: string,
+): LocalEvidence[] {
+  return evidenceFor(state, auditId, executionId).filter(
+    (item) => item.processingStatus === "ready" && item.recorded,
+  );
 }
 
 export function addFinding(
@@ -869,12 +1047,80 @@ export function reviewFinding(
   };
 }
 
-export function applyAiTurn(
+function nextMessageId(messages: readonly LocalMessage[]): string {
+  return `MSG-LOCAL-${pad(nextCount(messages.map((item) => item.messageId), "MSG-LOCAL-"))}`;
+}
+
+/**
+ * Record the user's question immediately, before the provider is called, so the
+ * conversation reflects the request the moment it is sent.
+ */
+export function beginAiTurn(
+  state: WorkspaceState,
+  input: { auditId: string; executionId: string; prompt: string; occurredAt?: string },
+): { state: WorkspaceState; messageId: string } {
+  const execution = assertWritable(state, input.auditId, input.executionId);
+  const at = input.occurredAt ?? new Date().toISOString();
+  const messageId = nextMessageId(state.messages);
+  return {
+    state: {
+      ...state,
+      messages: [
+        ...state.messages,
+        {
+          messageId,
+          auditId: input.auditId,
+          executionId: execution.executionId,
+          role: "user",
+          content: input.prompt,
+          occurredAt: at,
+          provider: null,
+          model: null,
+          requestId: null,
+          mode: null,
+          grounding: null,
+          confidence: null,
+          references: [],
+        },
+      ],
+    },
+    messageId,
+  };
+}
+
+/** Record a provider failure as a visible assistant turn plus a failed action. */
+export function failAiTurn(
+  state: WorkspaceState,
+  input: { auditId: string; executionId: string; message: string; occurredAt?: string },
+): { state: WorkspaceState } {
+  const execution = assertWritable(state, input.auditId, input.executionId);
+  const at = input.occurredAt ?? new Date().toISOString();
+  return {
+    state: completeAiTurn(state, {
+      auditId: input.auditId,
+      executionId: execution.executionId,
+      reply: input.message,
+      actions: [],
+      provider: "mock",
+      model: "unavailable",
+      requestId: null,
+      mode: "mock",
+      status: "unavailable",
+      occurredAt: at,
+    }).state,
+  };
+}
+
+/**
+ * Attach the assistant reply, its structured actions, and any findings to an
+ * execution. Split from `beginAiTurn` so the question is visible while the
+ * provider is still working.
+ */
+export function completeAiTurn(
   state: WorkspaceState,
   input: {
     auditId: string;
     executionId: string;
-    prompt: string;
     reply: string;
     actions: readonly ProposedAction[];
     provider: AiProviderName;
@@ -890,28 +1136,9 @@ export function applyAiTurn(
 ): { state: WorkspaceState; findingIds: readonly string[] } {
   const execution = assertWritable(state, input.auditId, input.executionId);
   const at = input.occurredAt ?? new Date().toISOString();
-  const userId = `MSG-LOCAL-${pad(nextCount(state.messages.map((item) => item.messageId), "MSG-LOCAL-"))}`;
-  let messages: LocalMessage[] = [
+  const assistantId = nextMessageId(state.messages);
+  const messages: LocalMessage[] = [
     ...state.messages,
-    {
-      messageId: userId,
-      auditId: input.auditId,
-      executionId: execution.executionId,
-      role: "user",
-      content: input.prompt,
-      occurredAt: at,
-      provider: null,
-      model: null,
-      requestId: null,
-      mode: null,
-      grounding: null,
-      confidence: null,
-      references: [],
-    },
-  ];
-  const assistantId = `MSG-LOCAL-${pad(nextCount(messages.map((item) => item.messageId), "MSG-LOCAL-"))}`;
-  messages = [
-    ...messages,
     {
       messageId: assistantId,
       auditId: input.auditId,
@@ -1046,6 +1273,36 @@ export function applyAiTurn(
   }
 
   return { state: next, findingIds };
+}
+
+/** Record a complete question-and-answer turn in one step. */
+export function applyAiTurn(
+  state: WorkspaceState,
+  input: {
+    auditId: string;
+    executionId: string;
+    prompt: string;
+    reply: string;
+    actions: readonly ProposedAction[];
+    provider: AiProviderName;
+    model: string;
+    requestId: string | null;
+    mode: AiMode;
+    status: "ok" | "unavailable";
+    occurredAt?: string;
+    grounding?: Grounding | null;
+    confidence?: Confidence | null;
+    references?: readonly EvidenceReference[];
+  },
+): { state: WorkspaceState; findingIds: readonly string[] } {
+  const at = input.occurredAt ?? new Date().toISOString();
+  const started = beginAiTurn(state, {
+    auditId: input.auditId,
+    executionId: input.executionId,
+    prompt: input.prompt,
+    occurredAt: at,
+  });
+  return completeAiTurn(started.state, { ...input, occurredAt: at });
 }
 
 export function getLocalAudit(state: WorkspaceState, auditId: string): LocalAudit | null {

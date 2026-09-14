@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatDay } from "@/lib/product/workspace";
-import { findingReviewLabel } from "@/lib/product/localWorkspace";
+import { findingReviewLabel, isWritableExecution } from "@/lib/product/localWorkspace";
 import { useState } from "react";
 import { useWorkspace } from "./WorkspaceProvider";
 
@@ -33,12 +33,18 @@ export function LocalEvidenceDetail({
         <Link href={`/product/audits/${auditId}/evidence`}>← Evidence</Link>
       </p>
       <p className="va-wip">
-        {item.sample ? "Sample evidence · not an uploaded file" : "Uploaded evidence · unsealed"}
+        {item.recorded
+          ? item.sample
+            ? "Sample evidence · recorded to this execution"
+            : "Uploaded evidence · recorded to this execution"
+          : item.processingStatus === "failed"
+            ? "Upload failed"
+            : "Upload in progress"}
       </p>
       <p className="va-lede">
-        {item.sample
-          ? `${item.title} was added to this audit as metadata only.`
-          : `${item.title} is attached to this execution.`}
+        {item.recorded
+          ? `${item.title} is attached to this execution.`
+          : `${item.title} has not been confirmed as evidence yet.`}
       </p>
       <dl className="va-detail">
         <div>
@@ -63,7 +69,17 @@ export function LocalEvidenceDetail({
         </div>
         <div>
           <dt>Status</dt>
-          <dd>{item.processingStatus === "failed" ? "Failed" : item.processingStatus === "processing" ? "Processing" : "Ready"}</dd>
+          <dd>
+            {item.processingStatus === "failed"
+              ? "Failed"
+              : item.processingStatus === "uploading"
+                ? "Uploading"
+                : item.processingStatus === "processing"
+                  ? "Processing"
+                  : item.recorded
+                    ? "Ready"
+                    : "Not recorded"}
+          </dd>
         </div>
         <div>
           <dt>Extraction</dt>
@@ -260,12 +276,17 @@ export function LocalFindingDetail({
               key={review}
               type="button"
               className="va-btn"
+              disabled={!isWritableExecution(execution ?? null)}
               onClick={() => {
                 try {
                   workspace.reviewFinding(finding.findingId, review, note);
                   setReviewError(null);
                 } catch (cause) {
-                  setReviewError(cause instanceof Error ? cause.message : "Review could not be recorded.");
+                  setReviewError(
+                    cause instanceof Error
+                      ? `Human review could not be saved. ${cause.message} Try again.`
+                      : "Human review could not be saved. Try again.",
+                  );
                 }
               }}
             >
@@ -273,7 +294,10 @@ export function LocalFindingDetail({
             </button>
           ))}
         </div>
-        {reviewError ? <p className="va-empty">{reviewError}</p> : null}
+        {!isWritableExecution(execution ?? null) ? (
+          <p className="va-empty">This execution is closed. Human review belongs on an active run.</p>
+        ) : null}
+        {reviewError ? <p className="va-review-error">{reviewError}</p> : null}
       </section>
       {finding.review === "pending" ? (
         <p className="va-empty">

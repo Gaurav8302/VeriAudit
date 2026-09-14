@@ -7,7 +7,14 @@ import type { ExecutionSealBundle } from "@/lib/product/sealTypes";
 import type { ProductVerification } from "@/lib/product/sealTypes";
 import { useWorkspace } from "./WorkspaceProvider";
 
-export function useExecutionTrust(auditId: string, executionId: string | null) {
+/**
+ * Seal and verify state for one execution.
+ *
+ * Mount this once per execution via `ExecutionTrustProvider`. Two components
+ * previously called it independently, which doubled every verification request
+ * and, through `describeIdentity`, doubled a key derivation on page load.
+ */
+export function useExecutionTrustState(auditId: string, executionId: string | null) {
   const workspace = useWorkspace();
   const execution = executionId
     ? workspace.executions(auditId).find((item) => item.executionId === executionId) ?? null
@@ -25,6 +32,8 @@ export function useExecutionTrust(auditId: string, executionId: string | null) {
 
   const eligible = Boolean(execution && executionId && !isHeroOriginal(executionId) && !execution.hasEngineTrail);
 
+  // Verification only runs for an execution that actually carries a seal. No
+  // cryptographic work happens during ordinary AI, evidence, or review work.
   useEffect(() => {
     setVerification(null);
     if (!seal || !eligible || !executionId) return;
@@ -36,12 +45,12 @@ export function useExecutionTrust(auditId: string, executionId: string | null) {
       body: JSON.stringify({
         snapshot: buildSealSnapshot(workspace.state, auditId, executionId),
         seal,
-        verified: true,
       }),
     })
       .then((response) => response.json())
-      .then((body: { verification?: ProductVerification; error?: string }) => {
+      .then((body: { verification?: ProductVerification; error?: string; tamperAllowed?: boolean }) => {
         if (cancelled) return;
+        setTamperAllowed(Boolean(body.tamperAllowed));
         if (body.verification) {
           setVerification(body.verification);
           setError(null);
@@ -62,25 +71,6 @@ export function useExecutionTrust(auditId: string, executionId: string | null) {
     };
   }, [auditId, cacheKey, eligible, executionId, seal]);
 
-  useEffect(() => {
-    if (!executionId || !eligible) {
-      setTamperAllowed(false);
-      return;
-    }
-    let cancelled = false;
-    fetch(`/api/product/executions/${encodeURIComponent(executionId)}/verification`)
-      .then((response) => response.json())
-      .then((body: { tamperAllowed?: boolean }) => {
-        if (!cancelled) setTamperAllowed(Boolean(body.tamperAllowed));
-      })
-      .catch(() => {
-        if (!cancelled) setTamperAllowed(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [eligible, executionId]);
-
   function snapshot() {
     if (!executionId) throw new Error("No execution selected.");
     return buildSealSnapshot(workspace.state, auditId, executionId);
@@ -94,7 +84,7 @@ export function useExecutionTrust(auditId: string, executionId: string | null) {
       const response = await fetch("/api/product/executions/seal", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ snapshot: snapshot(), verified: true }),
+        body: JSON.stringify({ snapshot: snapshot() }),
       });
       const body = (await response.json()) as { seal?: ExecutionSealBundle; error?: string };
       if (!response.ok || !body.seal) {
@@ -120,13 +110,17 @@ export function useExecutionTrust(auditId: string, executionId: string | null) {
           snapshot: snapshot(),
           seal: nextSeal,
           simulateTamper,
-          verified: true,
         }),
       });
-      const body = (await response.json()) as { verification?: ProductVerification; error?: string };
+      const body = (await response.json()) as {
+        verification?: ProductVerification;
+        error?: string;
+        tamperAllowed?: boolean;
+      };
       if (!response.ok || !body.verification) {
         throw new Error(body.error ?? "Verification could not be completed.");
       }
+      setTamperAllowed(Boolean(body.tamperAllowed));
       setVerification(body.verification);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Verification could not be completed.");
@@ -149,3 +143,5 @@ export function useExecutionTrust(auditId: string, executionId: string | null) {
     verifyExecution,
   };
 }
+
+export type ExecutionTrustState = ReturnType<typeof useExecutionTrustState>;
