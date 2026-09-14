@@ -20,7 +20,7 @@ export function FindingsBoard({
   const showCatalog = Boolean(catalog.length && selected && selected === originalId);
   const local = selected ? workspace.findings(auditId, selected) : workspace.findings(auditId);
   const current = executions.find((item) => item.executionId === selected);
-  const writable = isWritableExecution(current);
+  const writable = isWritableExecution(current ?? null);
 
   function review(findingId: string, decision: "accepted" | "rejected") {
     try {
